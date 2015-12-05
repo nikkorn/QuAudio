@@ -1,0 +1,19 @@
+2015:12:04 15:44:16 : INFO       : SERVER               : starting ...
+2015:12:04 15:44:16 : INFO       : AUDIO_FILE_RECEIVER  : initialising...
+2015:12:04 15:44:16 : INFO       : AUDIO_FILE_RECEIVER  : initialised!
+2015:12:04 15:44:16 : INFO       : AUDIO_FILE_RECEIVER  : starting...
+2015:12:04 15:44:16 : INFO       : AUDIO_FILE_RECEIVER  : started!
+2015:12:04 15:44:16 : INFO       : PLAYLIST             : initialising...
+2015:12:04 15:44:16 : INFO       : PLAYLIST             : initialised!
+2015:12:04 15:44:16 : INFO       : SERVER               : ... started!
+2015:12:04 15:44:16 : INFO       : PLAYLIST             : added track 'Great Song'
+2015:12:04 15:44:17 : INFO       : TRACK                : play 'Great Song'
+2015:12:04 15:44:17 : INFO       : PLAYLIST             : added track 'Great Song'
+2015:12:04 15:44:17 : INFO       : PLAYLIST             : added track 'Great Song'
+2015:12:04 15:44:17 : INFO       : PLAYLIST             : added track 'Great Song'
+2015:12:04 15:44:17 : INFO       : PLAYLIST             : added track 'Great Song'
+2015:12:04 15:44:17 : INFO       : SERVER               : beginning system loop...
+2015:12:04 15:44:19 : INFO       : TRACK                : play 'Great Song'
+2015:12:04 15:44:21 : INFO       : TRACK                : play 'Great Song'
+2015:12:04 15:44:24 : INFO       : TRACK                : play 'Great Song'
+2015:12:04 15:44:26 : INFO       : TRACK                : play 'Great Song'
