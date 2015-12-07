@@ -34,66 +34,66 @@ public class Properties {
 		}
 	}
 	
-	public String getDeviceName() {
+	public synchronized String getDeviceName() {
 		Node node = xmlDoc.getDocumentElement().getElementsByTagName("DEVICE_NAME").item(0);
 		return node.getTextContent();
 	}
 	
-	public void setDeviceName(String deviceName) {
+	public synchronized void setDeviceName(String deviceName) {
 		Node node = xmlDoc.getDocumentElement().getElementsByTagName("DEVICE_NAME").item(0);
 		node.setTextContent(deviceName);
 		propertiesChanged = true;
 	}
 	
-	public String getDeviceId() {
+	public synchronized String getDeviceId() {
 		Node node = xmlDoc.getDocumentElement().getElementsByTagName("DEVICE_ID").item(0);
 		return node.getTextContent();
 	}
 	
-	public void setDeviceId(String deviceId) {
+	public synchronized void setDeviceId(String deviceId) {
 		Node node = xmlDoc.getDocumentElement().getElementsByTagName("DEVICE_ID").item(0);
 		node.setTextContent(deviceId);
 		propertiesChanged = true;
 	}
 	
-	public int getAudioFileReceiverPort() {
+	public synchronized int getAudioFileReceiverPort() {
 		Node node = xmlDoc.getDocumentElement().getElementsByTagName("AFR_PORT").item(0);
 		return Integer.parseInt(node.getTextContent());
 	}
 	
-	public int getClientManagerPort() {
+	public synchronized int getClientManagerPort() {
 		Node node = xmlDoc.getDocumentElement().getElementsByTagName("CM_PORT").item(0);
 		return Integer.parseInt(node.getTextContent());
 	}
 	
-	public String getUploadDirectory() {
+	public synchronized String getUploadDirectory() {
 		Node node = xmlDoc.getDocumentElement().getElementsByTagName("TEMP_FILE_DIR").item(0);
 		return node.getTextContent();
 	}
 	
-	public boolean loggingToFileEnabled() {
+	public synchronized boolean loggingToFileEnabled() {
 		Node node = xmlDoc.getDocumentElement().getElementsByTagName("LOG_TO_FILE").item(0);
 		return Boolean.parseBoolean(node.getTextContent());
 	}
 	
-	public boolean loggingToConsoleEnabled() {
+	public synchronized boolean loggingToConsoleEnabled() {
 		Node node = xmlDoc.getDocumentElement().getElementsByTagName("LOG_TO_CONSOLE").item(0);
 		return Boolean.parseBoolean(node.getTextContent());
 	}
 	
-	public void setUploadDirectory(String uploadDir) {
+	public synchronized void setUploadDirectory(String uploadDir) {
 		Node node = xmlDoc.getDocumentElement().getElementsByTagName("TEMP_FILE_DIR").item(0);
 		node.setTextContent(uploadDir);
 		propertiesChanged = true;
 	}
 	
-	public boolean hasChanges() {
+	public synchronized boolean hasChanges() {
 		boolean hasChanged = propertiesChanged;
 		propertiesChanged = false;
 		return hasChanged;
 	}
 	
-	public void write() {
+	public synchronized void write() {
 		try {
 			Transformer xmlTransformer = TransformerFactory.newInstance().newTransformer();
 			DOMSource propertiesXMLSource = new DOMSource(xmlDoc);

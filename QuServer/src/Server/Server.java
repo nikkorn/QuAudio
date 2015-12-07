@@ -31,13 +31,16 @@ public class Server {
 	 * Carries out initialisations and tidy up before we hit the main server loop
 	 */
 	public void start() {
+		// Let us log how long it takes for server to start
+		long startTime = System.currentTimeMillis();
+		
 		// Load properties
 		properties = new Properties();
 		
 		// Initialise the Log.
 		Log.initialise();
 		
-		Log.log(Log.MessageType.INFO, "SERVER", "starting ...");
+		Log.log(Log.MessageType.INFO, "SERVER", "starting...");
 		
 		// Check that the device has a unique ID, if we don't have one then generate one.
 		if(properties.getDeviceId().equals("")) {
@@ -61,7 +64,7 @@ public class Server {
 		
 		// TODO Initialise ClientManager
 		
-		Log.log(Log.MessageType.INFO, "SERVER", "... started!");
+		Log.log(Log.MessageType.INFO, "SERVER", "...started in " + (System.currentTimeMillis() - startTime) + "ms!");
 		
 		// We have finished setting up, start the system loop.
 		systemLoop();
