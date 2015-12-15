@@ -5,6 +5,7 @@ import java.util.UUID;
 import FileTransfer.AudioFile;
 import FileTransfer.AudioFileReceiver;
 import Media.Playlist;
+import NetBeacon.Beacon;
 import Properties.Properties;
 
 /**
@@ -48,7 +49,15 @@ public class Server {
 			properties.setDeviceId(deviceId);
 			Log.log(Log.MessageType.INFO, "SERVER", "Generated Device Id " + deviceId);
 		}
-	
+		
+		// Initialise and start NetProbe Beacon
+		Log.log(Log.MessageType.INFO, "NETPROBE_BEACON", "initialising...");
+		Beacon netprobeBeacon = new Beacon(properties.getNetProbeBeaconPort());
+		Log.log(Log.MessageType.INFO, "NETPROBE_BEACON", "initialised!");
+		Log.log(Log.MessageType.INFO, "NETPROBE_BEACON", "starting...");
+		new Thread(netprobeBeacon).start();
+		Log.log(Log.MessageType.INFO, "NETPROBE_BEACON", "started!");
+		
 		// Initialise and start AudioFileReceiver
 		Log.log(Log.MessageType.INFO, "AUDIO_FILE_RECEIVER", "initialising...");
 		audioFileReceiver = new AudioFileReceiver(properties.getAudioFileReceiverPort());

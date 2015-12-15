@@ -1,6 +1,7 @@
 package Properties;
 
 import java.io.File;
+import java.util.ArrayList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Transformer;
@@ -66,6 +67,11 @@ public class Properties {
 		return Integer.parseInt(node.getTextContent());
 	}
 	
+	public synchronized int getNetProbeBeaconPort() {
+		Node node = xmlDoc.getDocumentElement().getElementsByTagName("NPB_PORT").item(0);
+		return Integer.parseInt(node.getTextContent());
+	}
+	
 	public synchronized String getUploadDirectory() {
 		Node node = xmlDoc.getDocumentElement().getElementsByTagName("TEMP_FILE_DIR").item(0);
 		return node.getTextContent();
@@ -85,6 +91,75 @@ public class Properties {
 		Node node = xmlDoc.getDocumentElement().getElementsByTagName("TEMP_FILE_DIR").item(0);
 		node.setTextContent(uploadDir);
 		propertiesChanged = true;
+	}
+	
+	public synchronized String getSuperPassword() {
+		Node node = xmlDoc.getDocumentElement().getElementsByTagName("SU_PASS").item(0);
+		return node.getTextContent();
+	}
+	
+	public synchronized void setSuperPassword(String pass) {
+		Node node = xmlDoc.getDocumentElement().getElementsByTagName("SU_PASS").item(0);
+		node.setTextContent(pass);
+		propertiesChanged = true;
+	}
+	
+	public synchronized String getAccessPassword() {
+		Node node = xmlDoc.getDocumentElement().getElementsByTagName("AC_PASS").item(0);
+		return node.getTextContent();
+	}
+	
+	public synchronized void setAccessPassword(String pass) {
+		Node node = xmlDoc.getDocumentElement().getElementsByTagName("AC_PASS").item(0);
+		node.setTextContent(pass);
+		propertiesChanged = true;
+	}
+	
+	public synchronized void addSuperUser(String clientId) {
+		Node superUsersNode = xmlDoc.getDocumentElement().getElementsByTagName("SUPER_USERS").item(0);
+		// Make sure that this client is not already a super user.
+		boolean isExistingSuperUser = false;
+		for(int nodeIndex = 0; nodeIndex < superUsersNode.getChildNodes().getLength(); nodeIndex++) {
+			if(superUsersNode.getChildNodes().item(nodeIndex).getTextContent().equals(clientId)) {
+				isExistingSuperUser = true;
+				break;
+			}
+		}
+		// Add this client if they are not an existing super user.
+		if(!isExistingSuperUser){
+			Node newNode = xmlDoc.createElement("Client_Id");
+			newNode.setTextContent(clientId);
+			superUsersNode.appendChild(newNode);
+			propertiesChanged = true;
+		}
+	}
+	
+	public synchronized void removeSuperUser(String clientId) {
+		Node superUsersNode = xmlDoc.getDocumentElement().getElementsByTagName("SUPER_USERS").item(0);
+		// Make sure that this client is already a super user.
+		boolean isExistingSuperUser = false;
+		Node targetNode = null;
+		for(int nodeIndex = 0; nodeIndex < superUsersNode.getChildNodes().getLength(); nodeIndex++) {
+			if(superUsersNode.getChildNodes().item(nodeIndex).getTextContent().equals(clientId)) {
+				isExistingSuperUser = true;
+				targetNode = superUsersNode.getChildNodes().item(nodeIndex);
+				break;
+			}
+		}
+		// Remove this client if they are an existing super user.
+		if(isExistingSuperUser){
+			superUsersNode.removeChild(targetNode);
+			propertiesChanged = true;
+		}
+	}
+	
+	public synchronized ArrayList<String> getSuperUsers() {
+		Node superUsersNode = xmlDoc.getDocumentElement().getElementsByTagName("SUPER_USERS").item(0);
+		ArrayList<String> superUserClientIds = new ArrayList<String>();
+		for(int nodeIndex = 0; nodeIndex < superUsersNode.getChildNodes().getLength(); nodeIndex++) {
+			superUserClientIds.add(superUsersNode.getChildNodes().item(nodeIndex).getTextContent());
+		}
+		return superUserClientIds;
 	}
 	
 	public synchronized boolean hasChanges() {
