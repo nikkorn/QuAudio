@@ -127,7 +127,7 @@ public class Properties {
 		}
 		// Add this client if they are not an existing super user.
 		if(!isExistingSuperUser){
-			Node newNode = xmlDoc.createElement("Client_Id");
+			Node newNode = xmlDoc.createElement("CLIENT_ID");
 			newNode.setTextContent(clientId);
 			superUsersNode.appendChild(newNode);
 			propertiesChanged = true;

@@ -55,7 +55,9 @@ public class Server {
 		Beacon netprobeBeacon = new Beacon(properties.getNetProbeBeaconPort());
 		Log.log(Log.MessageType.INFO, "NETPROBE_BEACON", "initialised!");
 		Log.log(Log.MessageType.INFO, "NETPROBE_BEACON", "starting...");
-		new Thread(netprobeBeacon).start();
+		Thread beaconThread = new Thread(netprobeBeacon);
+		beaconThread.setDaemon(true);
+		beaconThread.start();
 		Log.log(Log.MessageType.INFO, "NETPROBE_BEACON", "started!");
 		
 		// Initialise and start AudioFileReceiver
