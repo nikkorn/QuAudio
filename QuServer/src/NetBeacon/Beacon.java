@@ -59,7 +59,7 @@ public class Beacon implements Runnable {
 				jO.put("device_name", deviceName);
 				jO.put("afr_port", afrPort);
 				jO.put("cm_port", cmPort);
-				jO.put("isProtected", isProtected ? "1" : "0");
+				jO.put("isProtected", isProtected);
 				
 				// Create an independent JSON object to hold our super user info.
 				JSONArray superUserJSONArray = new JSONArray();
