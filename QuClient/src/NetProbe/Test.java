@@ -10,14 +10,12 @@ public class Test {
 		System.out.println("ready to initalise!");
 	
 		if(probe.initialise()) {
-			
-			System.out.println("initalised!");
-			
 			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices();
 			
 			for(ReachableQuDevice device : devices) {
 				System.out.println("DEVICE:");
 				System.out.println("   ID        : " + device.getDeviceId());
+				System.out.println("   NAME      : " + device.getDeviceName());
 				System.out.println("   ADDRESS   : " + device.getAddress());
 				System.out.println("   PROTECTED : " + device.isProtected());
 			}

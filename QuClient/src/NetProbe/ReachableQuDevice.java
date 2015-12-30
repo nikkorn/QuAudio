@@ -17,6 +17,9 @@ public class ReachableQuDevice {
 		this.deviceId = deviceId;
 		this.address = address;
 		this.isProtected = isProtected;
+		this.deviceName = deviceName;
+		this.afrPort = afrPort;
+		this.cmPort = cmPort;
 	}
 	
 	public String getDeviceId() {
