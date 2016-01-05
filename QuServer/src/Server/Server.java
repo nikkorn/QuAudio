@@ -1,7 +1,7 @@
 package Server;
 
 import java.util.UUID;
-
+import ClientManager.ClientManager;
 import FileTransfer.AudioFile;
 import FileTransfer.AudioFileReceiver;
 import Media.Playlist;
@@ -16,6 +16,7 @@ import Properties.Properties;
 public class Server {
 	private Playlist playlist = null;
 	private AudioFileReceiver audioFileReceiver = null;
+	private ClientManager clientManager = null;
 	public static Properties properties;
 	private boolean isRunning = true;
 	
@@ -73,8 +74,14 @@ public class Server {
 		playlist = new Playlist();
 		Log.log(Log.MessageType.INFO, "PLAYLIST", "initialised!");
 		
-		// TODO Initialise ClientManager
-		
+		// Initialise ClientManager
+		Log.log(Log.MessageType.INFO, "CLIENT_MANAGER", "initialising...");
+		clientManager = new ClientManager(properties.getClientManagerPort());
+		Log.log(Log.MessageType.INFO, "CLIENT_MANAGER", "initialised!");
+		Log.log(Log.MessageType.INFO, "CLIENT_MANAGER", "starting...");
+		clientManager.start();
+		Log.log(Log.MessageType.INFO, "CLIENT_MANAGER", "started!");
+
 		Log.log(Log.MessageType.INFO, "SERVER", "...started in " + (System.currentTimeMillis() - startTime) + "ms!");
 		
 		// We have finished setting up, start the system loop.
@@ -93,7 +100,8 @@ public class Server {
 			// Check to see if we have any completed file uploads, if so then add them to the playlist
 			addPendingUploadsToPlaylist();
 			
-			// Allow the playlist to do some processing
+			// Allow modules to do some processing
+			clientManager.process();
 			playlist.process();
 			
 			// If we have any changes to the system properties, write them to disk.

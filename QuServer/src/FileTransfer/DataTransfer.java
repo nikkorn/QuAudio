@@ -120,13 +120,3 @@ public class DataTransfer implements Runnable{
 		}
 	}
 }
-
-// EXAMPLE AUDIOFILE
-//AudioFile audioFile = new AudioFile(); 
-//audioFile.setName("Great Song");
-//audioFile.setId("g8d94jhd8");
-//audioFile.setPath("temp/clean.mp3");
-//audioFile.setAlbum("Rock Album");
-//audioFile.setArtist("Mega-Band");
-//audioFile.setOwnerId("NIKphoneid-dsfs2dfd34s");
-//audioFile.setFileFormat(FileFormat.MP3);

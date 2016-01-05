@@ -18,7 +18,7 @@ import org.json.JSONObject;
  */
 public class ActionChannel {
 	// Is the ActionChannel connected to the QuServer ClientManager?
-	private volatile boolean isConnected;
+	private volatile boolean isConnected = false;
 	// List of received IncomingActions to be processed
 	private LinkedList<IncomingAction> pendingIncomingActions = new LinkedList<IncomingAction>();
 	// A reference to the Listener which gets IncomingActions in a seperate thread
@@ -33,7 +33,7 @@ public class ActionChannel {
 	 * @throws IOException 
 	 * @throws UnknownHostException 
 	 */
-	public ActionChannel(String serverAddress, int serverClientManagerPort, String clientId, String clientName, String accessPassword) throws UnknownHostException, IOException{
+	public ActionChannel(String serverAddress, int serverClientManagerPort, String clientId, String clientName, String accessPassword) throws UnknownHostException, IOException, RuntimeException {
 		// Attempt to establish a connection to the server ClientManager
 		actionChannelSocket = new Socket(serverAddress, serverClientManagerPort);
 		// Initialise our PrintWriter
@@ -47,8 +47,8 @@ public class ActionChannel {
 		case ACCEPTED:
 			// The handshake was a success, continue
 			actionChannelListener = new ActionChannelListener(this, socketBufferedReader);
-			// TODO continue
-			
+			// Set this Actionchannel as being connected to the server
+			this.isConnected = true;
 			break;
 		case CONNECTION_FAILED:
 			throw new IOException("error: connection failed");
@@ -114,6 +114,21 @@ public class ActionChannel {
 		synchronized(pendingIncomingActions) {
 			pendingIncomingActions.add(newIncomingAction);
 		}
+	}
+	
+	/**
+	 * Gets the oldest IncomingAction from pendingIncomingActions, returns null if empty
+	 * @return oldest IncomingAction
+	 */
+	public IncomingAction getIncomingActionFromList() {
+		IncomingAction incomingAction = null;
+		synchronized(pendingIncomingActions) {
+			if(pendingIncomingActions.size() > 0) {
+				incomingAction = pendingIncomingActions.get(0);
+				pendingIncomingActions.remove(0);
+			}
+		}
+		return incomingAction;
 	}
 	
 	/**

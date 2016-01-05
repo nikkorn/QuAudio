@@ -18,13 +18,13 @@ public class Device {
 	private ClientConnectionConfig clientConfig;
 	private ActionChannel actionChannel;
 	
-	public Device(ReachableQuDevice reachableDevice, ClientConnectionConfig clientConfig) throws UnknownHostException, IOException {
+	public Device(ReachableQuDevice reachableDevice, ClientConnectionConfig clientConfig) throws IOException, RuntimeException {
 		this.reachableDevice = reachableDevice;
 		// Lock the ClientConfig object so that its state cannot be altered from here on out.
 		clientConfig.lock();
 		this.clientConfig = clientConfig;
 		// Create an ActionChannel.
-		this.actionChannel = new ActionChannel(reachableDevice.getAddress(), reachableDevice.getAudioFileReceiverPort(), 
+		this.actionChannel = new ActionChannel(reachableDevice.getAddress(), reachableDevice.getClientManagerPort(), 
 				clientConfig.getClientId(), clientConfig.getClientName(), clientConfig.getAccessPassword());
 	}
 	
@@ -70,6 +70,32 @@ public class Device {
 		} catch (IOException e) {
 			// Upload failed, do nothing as this shouldn't effect the user,
 			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Send an outgoing action to the server
+	 * @param outgoingAction
+	 */
+	public void sendAction(OutgoingAction outgoingAction) {
+		if(actionChannel.isConnected()) {
+			actionChannel.sendOutgoingActionToServer(outgoingAction);
+		} else {
+			// We are no longer connected to the server
+			throw new RuntimeException("not connected to Qu server");
+		}
+	}
+	
+	/**
+	 * Fetch the next pending IncomingAction from the server. Will return null if there are no pending actions.
+	 * @return
+	 */
+	public IncomingAction fetchAction() {
+		if(actionChannel.isConnected()) {
+			return actionChannel.getIncomingActionFromList();
+		} else {
+			// We are no longer connected to the server
+			throw new RuntimeException("not connected to Qu server");
 		}
 	}
 }

@@ -8,7 +8,7 @@ package Config;
 public class ClientConnectionConfig {
 	private String clientId;
 	private String clientName;
-	private String accessPassword;
+	private String accessPassword = "";
 	private boolean locked = false;
 	
 	public String getClientId() {
