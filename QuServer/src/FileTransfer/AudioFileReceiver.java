@@ -11,7 +11,7 @@ import Server.Log;
  * @author Nikolas Howard
  *
  */
-public class AudioFileReceiver implements Runnable{
+public class AudioFileReceiver implements Runnable {
 	private ServerSocket audioFileReceiverServerSocket = null;
 	private LinkedList<AudioFile> pendingUploadedAudioFiles = new LinkedList<AudioFile>();
 	

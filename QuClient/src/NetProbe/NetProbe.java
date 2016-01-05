@@ -14,6 +14,10 @@ public class NetProbe {
 	private String localAddress;
     private final ArrayList<ReachableQuDevice> availableDevices = new ArrayList<ReachableQuDevice>();
 
+    /**
+     * Initialises the NetProbe
+     * @return
+     */
 	public boolean initialise() {
 		String localAddress = null;
 
@@ -49,7 +53,12 @@ public class NetProbe {
 		return true;
 	}
 
-	public ArrayList<ReachableQuDevice> getReachableQuDevices() {
+	/**
+	 * Uses a multithreaded solution to probe for any available servers on the local network.
+	 * @param runLocally If true the local machine is included in the search for an available server.
+	 * @return A list of available devices
+	 */
+	public ArrayList<ReachableQuDevice> getReachableQuDevices(boolean runLocally) {
         // List of all threads that have probes running on them
         ArrayList<Thread> probeThreads = new ArrayList<Thread>();
 
@@ -70,6 +79,15 @@ public class NetProbe {
 
             // Initialise a Probe and start on a new thread
             Probe probe = new Probe(this, currentAddress);
+            Thread probeThread = new Thread(probe);
+            probeThreads.add(probeThread);
+            probeThread.start();
+		}
+		
+		// If the user has requested to run the client on the same machine then we include loopback
+		if(runLocally) {
+			// Initialise a Probe to search for a running server locally and start on a new thread
+            Probe probe = new Probe(this, C.LOCALHOST);
             Thread probeThread = new Thread(probe);
             probeThreads.add(probeThread);
             probeThread.start();

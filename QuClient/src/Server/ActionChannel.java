@@ -56,6 +56,8 @@ public class ActionChannel {
 			throw new RuntimeException("server declined connection");
 		case WRONG_ACCESS_PASSWORD:
 			throw new RuntimeException("incorrect access password");
+		case CLIENT_ALREADY_CONNECTED:
+			throw new RuntimeException("client already connected");
 		default:
 			throw new RuntimeException("unknown response");
 		}
@@ -133,6 +135,7 @@ public class ActionChannel {
 		WRONG_ACCESS_PASSWORD,
 		CONNECTION_FAILED,
 		DECLINED,
+		CLIENT_ALREADY_CONNECTED,
 		UNIDENTIFIED
 	}
 }
