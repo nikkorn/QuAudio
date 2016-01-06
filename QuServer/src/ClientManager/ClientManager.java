@@ -7,6 +7,10 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Map;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import Server.Log;
@@ -36,8 +40,22 @@ public class ClientManager implements Runnable {
 	 * Carry out processing on client map.
 	 */
 	public void process() {
-		// TODO Remove any disconnected clients from map
-		// TODO Write global actions
+		synchronized(clients) {
+			// Remove any disconnected clients from map and allow each client object
+			// to send any OutgoingActions that it has been queueing
+			Iterator<Map.Entry<String,Client>> iter = clients.entrySet().iterator();
+			while (iter.hasNext()) {
+			    Map.Entry<String,Client> entry = iter.next();
+			    if(!entry.getValue().isConnected()){
+			    	// Remove if disconnected.
+			        iter.remove();
+			    } else {
+			    	// Client is still connected, now is a good time to allow the client 
+			    	// object to fire off its queued OutgoingActions.
+			    	entry.getValue().sendPendingOutgoingActions();
+			    }
+			}
+		}
 	}
 	
 	public void start() {
@@ -116,7 +134,7 @@ public class ClientManager implements Runnable {
 		try {
 			responseWriter = new PrintWriter(senderSocket.getOutputStream());
 		} catch (IOException e) {
-			// If we werent able to to create our PrintWriter then just deny the connection request
+			// If we weren't able to to create our PrintWriter then just deny the connection request
 			Log.log(Log.MessageType.WARNING, "CLIENT_MANAGER", "unable to initialise response PrintWriter");
 			return;
 		}
@@ -147,17 +165,61 @@ public class ClientManager implements Runnable {
 			return;
 		}
 		
-		// It seems that we cant find a reason to decline this request, accept and notify the client
+		// It seems that we can't find a reason to decline this request, accept and notify the client
 		responseWriter.println("ACCEPTED");
 		responseWriter.flush();
 		Log.log(Log.MessageType.INFO, "CLIENT_MANAGER", "accepted client '" + requestJSON.getString("client_id")  + "'");
 		
 		// Initialise a new client
-		Client acceptedClient = new Client(senderSocket, reader, responseWriter);
+		Client acceptedClient = new Client(reader, responseWriter);
 		
 		// Add the client to our clients list.
 		synchronized(clients) {
 			clients.put(requestJSON.getString("client_id"), acceptedClient);
 		}
+	}
+	
+	/**
+	 * Queue an OutgoingAction to be sent to all connected clients.
+	 * @param outgoingAction
+	 */
+	public void queueOutgoingAction(OutgoingAction outgoingAction) {
+		synchronized(clients) {
+			for(Client client : clients.values()) {
+				client.queuePendingOutgoingAction(outgoingAction);
+			}
+		}
+	}
+	
+	/**
+	 * Queue an OutgoingAction to be sent to a connected client with matching clientId.
+	 * @param clientId
+	 * @param outgoingAction
+	 */
+	public void queueOutgoingAction(String clientId, OutgoingAction outgoingAction) {
+		synchronized(clients) {
+			if(clients.containsKey(clientId)){
+				clients.get(clientId).queuePendingOutgoingAction(outgoingAction);
+			}
+		}
+	}
+	
+	/**
+	 * Gets all pending IncomingActions from all client objects.
+	 * @return incomingActionList
+	 */
+	public LinkedList<IncomingAction> getPendingIncomingActions() {
+		// Our list that will hold all IncomingActions from all connected clients.
+		LinkedList<IncomingAction> incomingActionList = new LinkedList<IncomingAction>();
+		synchronized(clients) {
+			// Copy all pending actions.
+			for(Client currentClient : clients.values()){
+				// Don't bother collecting IncomingActions from disconnected clients.
+				if(currentClient.isConnected()) {
+					incomingActionList.addAll(currentClient.getPendingIncomingActions());
+				}
+			}
+		}
+		return incomingActionList;
 	}
 }

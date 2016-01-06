@@ -95,7 +95,8 @@ public class Server {
 		Log.log(Log.MessageType.INFO, "SERVER", "beginning system loop...");
 		while(isRunning) {
 			
-			// TODO DO LOTS OF STUFF!!!!
+			// Fetch and Process all pending IncomingActions from the ClientManager
+			processIncomingActions();
 			
 			// Check to see if we have any completed file uploads, if so then add them to the playlist
 			addPendingUploadsToPlaylist();
@@ -123,6 +124,14 @@ public class Server {
 		}
 	}
 	
+	/**
+	 * Fetch and Process all pending IncomingActions from the ClientManager
+	 */
+	private void processIncomingActions() {
+		// TODO Auto-generated method stub
+		
+	}
+
 	private void addPendingUploadsToPlaylist() {
 		AudioFile pendingUpload = audioFileReceiver.getNextUpload();
 		while(pendingUpload != null) {
