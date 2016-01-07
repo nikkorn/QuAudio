@@ -83,7 +83,7 @@ public class ActionChannel {
 		try {
 			rawHandshakeResponse = socketBufferedReader.readLine();
 		} catch (IOException e) {
-			// We had a connetion failure during the handshake, return the appropriate HandshakeResponse
+			// We had a connection failure during the handshake, return the appropriate HandshakeResponse
 			return HandshakeResponse.CONNECTION_FAILED;
 		}
 		HandshakeResponse response = null;
@@ -129,6 +129,17 @@ public class ActionChannel {
 			}
 		}
 		return incomingAction;
+	}
+	
+	
+	/**
+	 * Returns true if there are pending incoming actions
+	 * @return
+	 */
+	public boolean hasPendingIncomingActions(){
+		synchronized(pendingIncomingActions) {
+			return pendingIncomingActions.size() > 0;
+		}
 	}
 	
 	/**

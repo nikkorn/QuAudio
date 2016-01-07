@@ -3,10 +3,13 @@ package Server;
 import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.LinkedList;
+
 import Config.ClientConnectionConfig;
 import FileTransfer.AudioFileSender;
 import FileTransfer.FileFormat;
 import NetProbe.ReachableQuDevice;
+import ProxyPlaylist.Track;
 
 /**
  * Represents an instance of a Qu Server
@@ -23,11 +26,16 @@ public class Device {
 	private boolean isProtected;
 	private String[] superUsers;
 	
+	// Represents our Playlist
+	private LinkedList<Track> proxyPlaylist;
+	
 	public Device(ReachableQuDevice reachableDevice, ClientConnectionConfig clientConfig) throws IOException, RuntimeException {
 		this.reachableDevice = reachableDevice;
 		this.deviceName = reachableDevice.getDeviceName();
 		this.isProtected = reachableDevice.isProtected();
 		this.superUsers = reachableDevice.getSuperUserIds();
+		// Initialise our proxy playlist
+		proxyPlaylist = new LinkedList<Track>();
 		// Lock the ClientConfig object so that its state cannot be altered from here on out.
 		clientConfig.lock();
 		this.clientConfig = clientConfig;
@@ -70,6 +78,14 @@ public class Device {
 	}
 	
 	/**
+	 * Returns the most up to date version of our PlayList since process() last handled a PUSH_PLAYLIST IncomingAction
+	 * @return
+	 */
+	public LinkedList<Track> getPlaylist() {
+		return proxyPlaylist;
+	}
+	
+	/**
 	 * Uploads an audio file to the Qu Server.
 	 * @param audioFile
 	 * @param format
@@ -104,21 +120,42 @@ public class Device {
 	}
 	
 	/**
-	 * Fetch the next pending IncomingAction from the server. Will return null if there are no pending actions.
+	 * Process each IncomingAction
 	 * @return
 	 */
-	public IncomingAction fetchAction() {
+	public void process() {
 		if(actionChannel.isConnected()) {
 			// Catch any settings updates and apply them before handing the IncomingAction to the user.
 			IncomingAction incomingAction = actionChannel.getIncomingActionFromList();
-			if(incomingAction != null && incomingAction.getIncomingActionType() == IncomingActionType.PUSH_SETTINGS) {
-				applySettingsUpdate(incomingAction);
+			// Process all actions
+			while(incomingAction != null) {
+				// Process each differently based on their type
+				switch(incomingAction.getIncomingActionType()) {
+				case PLAY_FAIL:
+					break;
+				case PUSH_PLAYLIST:
+					applyPlaylistUpdate(incomingAction);
+					break;
+				case PUSH_SETTINGS:
+					applySettingsUpdate(incomingAction);
+					break;
+				}
+				
+				// Fetch next incoming action
+				incomingAction = actionChannel.getIncomingActionFromList();
 			}
-			return incomingAction;
 		} else {
 			// We are no longer connected to the server
 			throw new RuntimeException("not connected to Qu server");
 		}
+	}
+
+	/**
+	 * Returns true if there are pending incoming actions
+	 * @return
+	 */
+	public boolean hasPendingActions(){
+		return actionChannel.hasPendingIncomingActions();
 	}
 	
 	/**
@@ -134,5 +171,15 @@ public class Device {
 		this.deviceName = settingsUpdateAction.getActionInfoObject().getString("device_name");
 		this.isProtected = settingsUpdateAction.getActionInfoObject().getBoolean("isProtected");
 		this.superUsers = superClientIds;
+	}
+	
+	/**
+	 * Applies playlist changes that were passed from the server
+	 * @param settingsUpdateAction
+	 */
+	private void applyPlaylistUpdate(IncomingAction incomingAction) {
+		// TODO Auto-generated method stub
+		
+		// TODO Populate proxyPlaylist!
 	}
 }
