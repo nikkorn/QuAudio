@@ -4,12 +4,14 @@ import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
-
+import org.json.JSONArray;
+import org.json.JSONObject;
 import Config.ClientConnectionConfig;
 import FileTransfer.AudioFileSender;
 import FileTransfer.FileFormat;
 import NetProbe.ReachableQuDevice;
 import ProxyPlaylist.Track;
+import ProxyPlaylist.TrackState;
 
 /**
  * Represents an instance of a Qu Server
@@ -178,8 +180,22 @@ public class Device {
 	 * @param settingsUpdateAction
 	 */
 	private void applyPlaylistUpdate(IncomingAction incomingAction) {
-		// TODO Auto-generated method stub
-		
-		// TODO Populate proxyPlaylist!
+		// Get JSON array of tracks from the IncomingObject
+		JSONArray orderedTrackJSONArray = incomingAction.getActionInfoObject().getJSONArray("playlist");
+		// Empty the existing proxyPlaylist as it is out-dated and we will be replacing it with a brand new one.
+		proxyPlaylist.clear();
+		// Populate proxyPlaylist
+		for(int trackIndex = 0; trackIndex < orderedTrackJSONArray.length(); trackIndex++) {
+			JSONObject trackJSON = orderedTrackJSONArray.getJSONObject(trackIndex);
+			Track newTrack = new Track();
+			newTrack.setTrackId(trackJSON.getString("track_id"));
+			newTrack.setOwnerId(trackJSON.getString("owner_id"));
+			newTrack.setTrackState(TrackState.valueOf(trackJSON.getString("track_state")));
+			newTrack.setName(trackJSON.getString("name"));
+			newTrack.setArtist(trackJSON.getString("artist"));
+			newTrack.setAlbum(trackJSON.getString("album"));
+			// Add the new Track to the proxy playlist
+			proxyPlaylist.add(newTrack);
+		}
 	}
 }
