@@ -3,15 +3,19 @@ package NetProbe;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.UUID;
+import org.json.JSONObject;
 import Config.ClientConnectionConfig;
 import FileTransfer.FileFormat;
 import Server.Device;
+import Server.OutgoingAction;
+import Server.OutgoingActionType;
 
 public class Test {
 	
 	public static void main(String[] args) {
-		findDevices();
-		establishConnection();
+		//findDevices();
+		updateSettings();
 	}
 
 	public static void findDevices() {
@@ -30,7 +34,10 @@ public class Test {
 		}
 	}
 	
-	private static void establishConnection() {
+	/**
+	 * Send a test update_settings action to the server
+	 */
+	private static void updateSettings() {
 		NetProbe probe = new NetProbe();
 		ReachableQuDevice targetDevice = null;
 		
@@ -54,23 +61,47 @@ public class Test {
 			
 			// Create a Client Config
 			ClientConnectionConfig config = new ClientConnectionConfig();
-			config.setClientId("aaaaa-bbbbbb-cccccc-dddddd");
+			config.setClientId(UUID.randomUUID().toString()); // Generate a random id so we can connect multiple clients
 			config.setClientName("Nik");
 			
-			// Attempt ot initialise our Device object
+			// Attempt to initialise our Device object
 			Device runningQuServerDevice = null;
 			try {
 				runningQuServerDevice = new Device(targetDevice, config);
+				
+				// Write the action to the server
+				// Create a dummy OutgoingAction which will hopefully be grabbed by the server as an IncomingAction for settings update
+				// JSONObject testActionJSON = new JSONObject();
+				// testActionJSON.put("device_name", "Awesomo");
+				// testActionJSON.put("access_password", "Lemons");
+				// OutgoingAction testAction = new OutgoingAction(OutgoingActionType.UPDATE_SETTINGS, testActionJSON);
+				// runningQuServerDevice.sendAction(testAction);
+				
+				// No problems so far, cross fingers and attempt to send a song!
+				// File audioFile = new File("TestAudiofiles/balls.mp3");
+				// runningQuServerDevice.uploadAudioFile(audioFile, FileFormat.MP3, "balls", "coolguy", "myalbum");
+				
+				// Dont let this test die
+				while(true) {
+					// Wait for a bit
+					try {
+						Thread.sleep(200);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+					
+					// Let the Device object process the actions it has received from the server
+					if(runningQuServerDevice.hasPendingActions()) {
+						System.out.println("We have an action!");
+						runningQuServerDevice.process();	
+					}
+				}
+				
 			} catch (IOException e) {
 				System.out.println("got IOException on Device constructor");
 			} catch (RuntimeException e1) {
 				System.out.println("got RuntimeException on Device constructor");
 			} 
-			
-			// No problems so far, cross fingers and attempt to send a song!
-			File audioFile = new File("TestAudiofiles/balls.mp3");
-			runningQuServerDevice.uploadAudioFile(audioFile, FileFormat.MP3, "balls", "coolguy", "myalbum");
-			
 		} else {
 			System.out.println("targetDevice is null!!!");
 		}

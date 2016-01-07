@@ -1,9 +1,14 @@
 package Server;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.UUID;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import ClientManager.ClientManager;
 import ClientManager.IncomingAction;
+import ClientManager.OutgoingAction;
+import ClientManager.OutgoingActionType;
 import FileTransfer.AudioFile;
 import FileTransfer.AudioFileReceiver;
 import Media.Playlist;
@@ -166,6 +171,25 @@ public class Server {
 				properties.setDeviceName(action.getActionInfoObject().getString("device_name"));
 				properties.setAccessPassword(action.getActionInfoObject().getString("access_password"));
 				Log.log(Log.MessageType.INFO, "SERVER", "settings updated");
+				// Broadcast a PUSH_SETTINGS action to all clients notifying them of the settings changing
+				JSONObject settingsJSON = new JSONObject();
+				// ------------------------------------------------
+				// Add settings that will need to be sent
+				String deviceName = Server.properties.getDeviceName();
+				ArrayList<String> superUserClientIds = Server.properties.getSuperUsers();
+				boolean isProtected = !Server.properties.getAccessPassword().equals("");
+				// Create an independent JSON object to hold our super user info.
+				JSONArray superUserJSONArray = new JSONArray();
+				for(String suClientId : superUserClientIds) {
+					superUserJSONArray.put(suClientId);
+				}
+				// Now that we have all of the information we need to send back to the client we can begin to construct our JSON response.
+				settingsJSON.put("device_name", deviceName);
+				settingsJSON.put("isProtected", isProtected);
+				settingsJSON.put("super_users", superUserJSONArray);
+				// ------------------------------------------------
+				OutgoingAction settingsPushAction = new OutgoingAction(OutgoingActionType.PUSH_SETTINGS, settingsJSON);
+				clientManager.queueOutgoingAction(settingsPushAction);
 				break;
 				
 			// A super client has requested that the system shut down.

@@ -48,6 +48,7 @@ public class ClientManager implements Runnable {
 			    Map.Entry<String,Client> entry = iter.next();
 			    if(!entry.getValue().isConnected()){
 			    	// Remove if disconnected.
+			    	Log.log(Log.MessageType.INFO, "CLIENT_MANAGER", "client '" + entry.getKey() + "' disconnected");
 			        iter.remove();
 			    } else {
 			    	// Client is still connected, now is a good time to allow the client 
