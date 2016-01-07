@@ -2,5 +2,6 @@ package Server;
 
 public enum IncomingActionType {
 	PUSH_PLAYLIST,
-	PUSH_SETTINGS
+	PUSH_SETTINGS,
+	PLAY_FAIL
 }

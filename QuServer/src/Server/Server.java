@@ -1,12 +1,17 @@
 package Server;
 
+import java.io.IOException;
 import java.util.UUID;
 import ClientManager.ClientManager;
+import ClientManager.IncomingAction;
 import FileTransfer.AudioFile;
 import FileTransfer.AudioFileReceiver;
 import Media.Playlist;
 import NetBeacon.Beacon;
 import Properties.Properties;
+import QuInterface.LEDBehaviour;
+import QuInterface.LEDColourDefault;
+import QuInterface.QuInterface;
 
 /**
  * 
@@ -128,8 +133,60 @@ public class Server {
 	 * Fetch and Process all pending IncomingActions from the ClientManager
 	 */
 	private void processIncomingActions() {
-		// TODO Auto-generated method stub
-		
+		// Process each IncomingAction individually
+		for(IncomingAction action : clientManager.getPendingIncomingActions()) {
+			// What type of action is it?
+			switch(action.getIncomingActionType()) {
+			// A client has requested that we pause the currently playing audio file
+			case PAUSE:
+				break;
+			
+			// A client has requested that we play the current audio file (if it is paused)
+			case PLAY:
+				break;
+				
+			// A client has requested that we promote/demote a track in the playlist queue
+			case MOVE:
+				break;
+				
+			// A client has requested that we move to a different position in the currently playing track
+			case SKIP:
+				break;
+				
+			// A client has requested that we stop the currently playing/paused track and move on to the next (if there is one)
+			case STOP:
+				break;
+				
+			// A client has requested to become a super user, and has supplied an attempt at the super password
+			case ADMIN_REQUEST:
+				break;
+				
+			// A super client has supplied updated system settings
+			case UPDATE_SETTINGS:
+				properties.setDeviceName(action.getActionInfoObject().getString("device_name"));
+				properties.setAccessPassword(action.getActionInfoObject().getString("access_password"));
+				Log.log(Log.MessageType.INFO, "SERVER", "settings updated");
+				break;
+				
+			// A super client has requested that the system shut down.
+			case EXIT:
+				Log.log(Log.MessageType.INFO, "SERVER", "system shutdown requested");
+				// Interact with the QuInterface to set a standby (red) light
+				QuInterface.show(LEDColourDefault.RED, LEDBehaviour.GLOW);
+				// Shutdown the device (assumes this is unix based system)
+				try {
+					Runtime.getRuntime().exec("sudo shutdown -h now");
+				} catch (IOException e) {
+					Log.log(Log.MessageType.ERROR, "SERVER", "failed to shutdown");
+				}
+				break;
+				
+			// We have an unknown type, just ignore this IncomingAction
+			default:
+				Log.log(Log.MessageType.ERROR, "SERVER", "unknown action type '" + action.getIncomingActionType() + "'");
+				break;
+			}
+		}
 	}
 
 	private void addPendingUploadsToPlaylist() {
