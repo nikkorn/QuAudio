@@ -18,8 +18,16 @@ public class Device {
 	private ClientConnectionConfig clientConfig;
 	private ActionChannel actionChannel;
 	
+	// Variables that are initially set by the input ReachableQuDevice, but can change during the lifetime of a Device object.
+	private String deviceName;
+	private boolean isProtected;
+	private String[] superUsers;
+	
 	public Device(ReachableQuDevice reachableDevice, ClientConnectionConfig clientConfig) throws IOException, RuntimeException {
 		this.reachableDevice = reachableDevice;
+		this.deviceName = reachableDevice.getDeviceName();
+		this.isProtected = reachableDevice.isProtected();
+		this.superUsers = reachableDevice.getSuperUserIds();
 		// Lock the ClientConfig object so that its state cannot be altered from here on out.
 		clientConfig.lock();
 		this.clientConfig = clientConfig;
@@ -36,20 +44,29 @@ public class Device {
 		return reachableDevice.getAddress();
 	}
 
-	public boolean isProtected() {
-		return reachableDevice.isProtected();
-	}
-
-	public String getDeviceName() {
-		return reachableDevice.getDeviceName();
-	}
-
 	public int getAudioFileReceiverPort() {
 		return reachableDevice.getAudioFileReceiverPort();
 	}
 
 	public int getClientManagerPort() {
 		return reachableDevice.getClientManagerPort();
+	}
+	
+	public boolean isProtected() {
+		return this.isProtected;
+	}
+
+	public String getDeviceName() {
+		return this.deviceName;
+	}
+	
+	public boolean adminModeEnabled() {
+		for(String superClientId : superUsers) {
+			if(superClientId.equals(clientConfig.getClientId())) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	/**
@@ -92,10 +109,30 @@ public class Device {
 	 */
 	public IncomingAction fetchAction() {
 		if(actionChannel.isConnected()) {
-			return actionChannel.getIncomingActionFromList();
+			// Catch any settings updates and apply them before handing the IncomingAction to the user.
+			IncomingAction incomingAction = actionChannel.getIncomingActionFromList();
+			if(incomingAction != null && incomingAction.getIncomingActionType() == IncomingActionType.PUSH_SETTINGS) {
+				applySettingsUpdate(incomingAction);
+			}
+			return incomingAction;
 		} else {
 			// We are no longer connected to the server
 			throw new RuntimeException("not connected to Qu server");
 		}
+	}
+	
+	/**
+	 * Applies settings changes that were passed from the server
+	 * @param settingsUpdateAction
+	 */
+	private void applySettingsUpdate(IncomingAction settingsUpdateAction) {
+		// Construct a String array of super client ids
+        String[] superClientIds = new String[settingsUpdateAction.getActionInfoObject().getJSONArray("super_users").length()];
+        for(int i = 0; i < superClientIds.length; i++) {
+        	superClientIds[i] = settingsUpdateAction.getActionInfoObject().getJSONArray("super_users").getString(i);
+        }
+		this.deviceName = settingsUpdateAction.getActionInfoObject().getString("device_name");
+		this.isProtected = settingsUpdateAction.getActionInfoObject().getBoolean("isProtected");
+		this.superUsers = superClientIds;
 	}
 }

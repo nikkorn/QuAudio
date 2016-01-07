@@ -36,8 +36,13 @@ public class Probe implements Runnable{
             String response = br.readLine();
             
             // Construct a JSON object using the devices response.
-            // TODO Catch cases where whatever is returned is NOT our exprected response
             JSONObject drJSON = new JSONObject(response);
+            
+            // Construct a String array of super client ids
+            String[] superClientIds = new String[drJSON.getJSONArray("super_users").length()];
+            for(int i = 0; i < superClientIds.length; i++) {
+            	superClientIds[i] = drJSON.getJSONArray("super_users").getString(i);
+            }
 			
             // Create our representation of the reachable device. 
             ReachableQuDevice locatedDevice = new ReachableQuDevice(drJSON.getString("device_id"), 
@@ -45,7 +50,8 @@ public class Probe implements Runnable{
             		drJSON.getInt("afr_port"), 
             		drJSON.getInt("cm_port"), 
             		address, 
-            		drJSON.getBoolean("isProtected"));
+            		drJSON.getBoolean("isProtected"),
+            		superClientIds);
             
             // Add the new device to the list
             netProbe.addReachableDevice(locatedDevice);

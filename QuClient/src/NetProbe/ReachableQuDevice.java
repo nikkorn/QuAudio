@@ -12,14 +12,16 @@ public class ReachableQuDevice {
 	private int afrPort;
 	private int cmPort;
 	private boolean isProtected;
+	private String[] superUsers;
 	
-	public ReachableQuDevice(String deviceId, String deviceName, int afrPort, int cmPort, String address, boolean isProtected) {
+	public ReachableQuDevice(String deviceId, String deviceName, int afrPort, int cmPort, String address, boolean isProtected, String[] superUsers) {
 		this.deviceId = deviceId;
 		this.address = address;
 		this.isProtected = isProtected;
 		this.deviceName = deviceName;
 		this.afrPort = afrPort;
 		this.cmPort = cmPort;
+		this.superUsers = superUsers;
 	}
 	
 	public String getDeviceId() {
@@ -44,5 +46,18 @@ public class ReachableQuDevice {
 
 	public int getClientManagerPort() {
 		return cmPort;
+	}
+	
+	public boolean isSuperUser(String clientId) {
+		for(String superClientId : superUsers) {
+			if(superClientId.equals(clientId)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public String[] getSuperUserIds() {
+		return superUsers;
 	}
 }
