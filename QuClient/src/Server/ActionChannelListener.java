@@ -22,7 +22,9 @@ public class ActionChannelListener implements Runnable{
 		this.actionChannel = actionChannel;
 		this.socketBufferedReader = socketBufferedReader;
 		// Start the ActionChannelListener in a new thread as it will be blocking when waiting for input from the server.
-		new Thread(this).start();
+		Thread actionChannelListenerThread = new Thread(this);
+		actionChannelListenerThread.setDaemon(true);
+		actionChannelListenerThread.start();
 	}
 	
 	@Override
