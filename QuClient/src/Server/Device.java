@@ -236,4 +236,20 @@ public class Device {
     		this.superUsers = superClientIds;
         }
 	}
+
+	/**
+	 * Returns true/false depending on if we are connected to the server.
+	 * @return isConnected
+	 */
+	public boolean isConnected() {
+		return this.actionChannel.isConnected();
+	}
+
+	/**
+	 * Disconnect from the server.
+	 */
+	public void disconnect() {
+		// Disconnect the ActionChannel from the server. 
+		this.actionChannel.disconnect();
+	}
 }

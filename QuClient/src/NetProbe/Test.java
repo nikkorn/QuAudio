@@ -17,7 +17,8 @@ public class Test {
 	
 	public static void main(String[] args) {
 		//findDevices();
-		updateSettings();
+		//updateSettings();
+		connectAndDisconnect();
 	}
 
 	public static void findDevices() {
@@ -39,7 +40,7 @@ public class Test {
 	/**
 	 * Send a test update_settings action to the server
 	 */
-	private static void updateSettings() {
+	public static void updateSettings() {
 		NetProbe probe = new NetProbe();
 		ReachableQuDevice targetDevice = null;
 		
@@ -113,6 +114,60 @@ public class Test {
 					
 				}
 				
+			} catch (IOException e) {
+				System.out.println("got IOException on Device constructor");
+			} catch (RuntimeException e1) {
+				System.out.println("got RuntimeException on Device constructor");
+			} 
+		} else {
+			System.out.println("targetDevice is null!!!");
+		}
+	}
+	
+	/**
+	 * Test connecting and disconnection to/from server
+	 */
+	private static void connectAndDisconnect() {
+		NetProbe probe = new NetProbe();
+		ReachableQuDevice targetDevice = null;
+		
+		// Attempt to get local Qu server instance
+		if(probe.initialise()) {
+			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
+			for(ReachableQuDevice device : devices) {
+				if(device.getAddress().equals("127.0.0.1")) {
+					// We will be using the local instance on Qu server for this test
+					targetDevice = device;
+					break;
+				}
+			}
+		} else {
+			System.out.println("We Failed to initalise!!!");
+		}
+		
+		if(targetDevice != null) {
+			// We have a ReachableQuDevice object which represents the locally running Qu server. Attempt to make a connection.
+			// Create a Client Config
+			ClientConnectionConfig config = new ClientConnectionConfig();
+			config.setClientId(UUID.randomUUID().toString()); // Generate a random id so we can connect multiple clients
+			config.setClientName("Nik");
+			
+			// Attempt to initialise our Device object
+			Device runningQuServerDevice = null;
+			try {
+				runningQuServerDevice = new Device(targetDevice, config);
+				
+				// Sleep a bit before disconnecting
+				try {
+					Thread.sleep(4000);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
+				
+				if(runningQuServerDevice.isConnected()) {
+					runningQuServerDevice.disconnect();
+				}
+			
 			} catch (IOException e) {
 				System.out.println("got IOException on Device constructor");
 			} catch (RuntimeException e1) {

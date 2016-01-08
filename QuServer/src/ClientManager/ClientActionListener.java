@@ -35,12 +35,17 @@ public class ClientActionListener implements Runnable {
 				// Attempt to construct a IncomingAction JSON object using the raw input.
 				JSONObject incomingActionJSONObject = null;
 				try {
-					// Attempt to create a JSONObject using the read input
-					incomingActionJSONObject = new JSONObject(rawIncomingActionJSON);
-					// We were able to create a valid JSONObject, now make our IncomingAction
-					IncomingAction newIncomingAction = new IncomingAction(incomingActionJSONObject);
-					// Pass the new IncomingAction to the ActionChannel to be processed at a later time
-					client.queueIncomingAction(newIncomingAction);
+					if(rawIncomingActionJSON != null) {
+						// Attempt to create a JSONObject using the read input
+						incomingActionJSONObject = new JSONObject(rawIncomingActionJSON);
+						// We were able to create a valid JSONObject, now make our IncomingAction
+						IncomingAction newIncomingAction = new IncomingAction(incomingActionJSONObject);
+						// Pass the new IncomingAction to the ActionChannel to be processed at a later time
+						client.queueIncomingAction(newIncomingAction);
+					} else {
+						// We shouldn't have got a null value from our BufferedReader, we must have disconnected
+						throw new IOException("client disconnected");
+					}
 				} catch (JSONException e) {
 					// The raw JSON string that the client has sent us doesn't seem to be valid JSON.
 					// Just do nothing and continue listening.

@@ -152,6 +152,19 @@ public class ActionChannel {
 	}
 	
 	/**
+	 * Disconnect from the server.
+	 */
+	public void disconnect() {
+		// Closing our outgoingActionWriter will prompt the ClientActionListener on the
+		// server to throw an IOException that will cause the ClientManager to regard
+		// this client as disconnected, removing it from the client list.
+		if(outgoingActionWriter != null) {
+			outgoingActionWriter.close();
+		}
+		isConnected = false;
+	}
+	
+	/**
 	 * The potential outcomes of sending a handshake to the server
 	 * @author Nikolas Howard
 	 *
