@@ -71,11 +71,11 @@ public class Test {
 				
 				// Write the action to the server
 				// Create a dummy OutgoingAction which will hopefully be grabbed by the server as an IncomingAction for settings update
-				// JSONObject testActionJSON = new JSONObject();
-				// testActionJSON.put("device_name", "Awesomo");
-				// testActionJSON.put("access_password", "");
-				// OutgoingAction testAction = new OutgoingAction(OutgoingActionType.UPDATE_SETTINGS, testActionJSON);
-				// runningQuServerDevice.sendAction(testAction);
+				 JSONObject testActionJSON = new JSONObject();
+				 testActionJSON.put("device_name", "cake");
+				 testActionJSON.put("access_password", "");
+				 OutgoingAction testAction = new OutgoingAction(OutgoingActionType.UPDATE_SETTINGS, testActionJSON);
+				 runningQuServerDevice.sendAction(testAction);
 				
 				// No problems so far, cross fingers and attempt to send a song!
 				// File audioFile = new File("TestAudiofiles/balls.mp3");
@@ -85,10 +85,13 @@ public class Test {
 				while(true) {
 					// Wait for a bit
 					try {
-						Thread.sleep(200);
+						Thread.sleep(4000);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
+					
+					// Print out the Device name to see if it is automatically updated and changes 
+					System.out.println("Device Name: " + runningQuServerDevice.getDeviceName());
 				}
 				
 			} catch (IOException e) {

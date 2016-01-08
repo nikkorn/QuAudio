@@ -48,22 +48,23 @@ public class Device {
 		this.actionChannel = new ActionChannel(reachableDevice.getAddress(), reachableDevice.getClientManagerPort(), 
 				clientConfig.getClientId(), clientConfig.getClientName(), clientConfig.getAccessPassword());
 		
-		// Start a new thread, this will be responsible for processing IncomingActions
+		// Start a new thread, this will be responsible for processing IncomingActions.
 		Thread deviceThread = new Thread(new Runnable() {
-
 			@Override
 			public void run() {
-				// Wait a bit so we don't hog too much processing power
-				try {
-					Thread.sleep(6);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
+				boolean connected = true;
+				// Only process actions if we are still connected, otherwise don't bother.
+				while(connected) {
+					// Wait a bit so we don't hog too much processing power.
+					try {
+						Thread.sleep(6);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+					// Process incoming actions and check that we were still connected.
+					connected = process();
 				}
-				
-				// Process incoming actions
-				process();
 			}
-			
 		});
 		deviceThread.setDaemon(true);
 		deviceThread.start();
@@ -175,7 +176,7 @@ public class Device {
 	 * Process each IncomingAction
 	 * @return
 	 */
-	private void process() {
+	private boolean process() {
 		if(actionChannel.isConnected()) {
 			// Catch any settings updates and apply them before handing the IncomingAction to the user.
 			IncomingAction incomingAction = actionChannel.getIncomingActionFromList();
@@ -207,9 +208,11 @@ public class Device {
 				incomingAction = actionChannel.getIncomingActionFromList();
 			}
 		} else {
-			// We are no longer connected to the server
-			throw new RuntimeException("not connected to Qu server");
+			// We are disconnected, return that this failed
+			return false;
 		}
+		// We are still connected, return true
+		return true;
 	}
 	
 	/**
