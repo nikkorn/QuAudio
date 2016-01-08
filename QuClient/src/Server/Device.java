@@ -164,6 +164,7 @@ public class Device {
 	 * @param outgoingAction
 	 */
 	public void sendAction(OutgoingAction outgoingAction) {
+		// TODO check to see if this user has permissions for the action they want to send
 		if(actionChannel.isConnected()) {
 			actionChannel.sendOutgoingActionToServer(outgoingAction);
 		} else {
@@ -174,7 +175,7 @@ public class Device {
 	
 	/**
 	 * Process each IncomingAction
-	 * @return
+	 * @return Whether the connection was broken
 	 */
 	private boolean process() {
 		if(actionChannel.isConnected()) {
@@ -189,8 +190,12 @@ public class Device {
 					
 				case PUSH_PLAYLIST:
 					// Store the JSON representation of our PlayList for the next time the user wants it.
-					synchronized(proxyPlaylist) {
+					if(proxyPlaylist == null) {
 						this.proxyPlaylist = incomingAction.getActionInfoObject();
+					} else {
+						synchronized(proxyPlaylist) {
+							this.proxyPlaylist = incomingAction.getActionInfoObject();
+						}
 					}
 					// We have a new snapshot of the state of the PlayList, if the user has grabbed a PlayList before 
 					// we need to mark it as dirty to let them know it is out-dated.

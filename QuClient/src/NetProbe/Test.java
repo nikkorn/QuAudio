@@ -7,6 +7,8 @@ import java.util.UUID;
 import org.json.JSONObject;
 import Config.ClientConnectionConfig;
 import FileTransfer.FileFormat;
+import ProxyPlaylist.PlayList;
+import ProxyPlaylist.Track;
 import Server.Device;
 import Server.OutgoingAction;
 import Server.OutgoingActionType;
@@ -71,27 +73,44 @@ public class Test {
 				
 				// Write the action to the server
 				// Create a dummy OutgoingAction which will hopefully be grabbed by the server as an IncomingAction for settings update
-				 JSONObject testActionJSON = new JSONObject();
-				 testActionJSON.put("device_name", "cake");
-				 testActionJSON.put("access_password", "");
-				 OutgoingAction testAction = new OutgoingAction(OutgoingActionType.UPDATE_SETTINGS, testActionJSON);
-				 runningQuServerDevice.sendAction(testAction);
+				//JSONObject testActionJSON = new JSONObject();
+				//testActionJSON.put("device_name", "cake");
+				//testActionJSON.put("access_password", "");
+				//OutgoingAction testAction = new OutgoingAction(OutgoingActionType.UPDATE_SETTINGS, testActionJSON);
+				// runningQuServerDevice.sendAction(testAction);
 				
 				// No problems so far, cross fingers and attempt to send a song!
-				// File audioFile = new File("TestAudiofiles/balls.mp3");
-				// runningQuServerDevice.uploadAudioFile(audioFile, FileFormat.MP3, "balls", "coolguy", "myalbum");
+				 File audioFile = new File("TestAudiofiles/balls.mp3");
+				 runningQuServerDevice.uploadAudioFile(audioFile, FileFormat.MP3, "balls", "coolguy", "myalbum");
 				
 				// Dont let this test die
 				while(true) {
 					// Wait for a bit
 					try {
-						Thread.sleep(4000);
+						Thread.sleep(5000);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
 					
-					// Print out the Device name to see if it is automatically updated and changes 
-					System.out.println("Device Name: " + runningQuServerDevice.getDeviceName());
+					// Get our playlist
+					PlayList playList = runningQuServerDevice.getPlayList();
+					// Print state of playlist
+					System.out.println("------------------PlayList------------------");
+					if(playList.getTracks().size() == 0) {
+						System.out.println("Empty PlayList!");
+					} else {
+						for(Track track : playList.getTracks()) {
+							System.out.println("ID: " + track.getTrackId());
+							System.out.println("Name: " + track.getName());
+							System.out.println("Artist: " + track.getArtist());
+							System.out.println("Album: " + track.getAlbum());
+							System.out.println("OwnerID: " + track.getOwnerId());
+							System.out.println("State: " + track.getTrackState().toString());
+							System.out.println();
+						}
+					}
+					System.out.println("--------------------------------------------");
+					
 				}
 				
 			} catch (IOException e) {

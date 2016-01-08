@@ -1,17 +1,32 @@
 package Media;
 
-import java.util.ArrayList;
-
+import java.util.LinkedList;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import ClientManager.ClientManager;
+import ClientManager.OutgoingAction;
+import ClientManager.OutgoingActionType;
 import FileTransfer.AudioFile;
 import Server.Log;
+import Server.Server;
 
 public class Playlist {
-	private ArrayList<Playable> tracks = new ArrayList<Playable>();
+	// The tracks that are currently in the playlist
+	private LinkedList<Playable> tracks = new LinkedList<Playable>();
+	// The last time that the PlayList queued a PUSH_PLAYLIST in the ClientManager
+	private long lastPlayListActionPush;
+	// The number of milliseconds between each time the PlayList will queue a PUSH_PLAYLIST action
+	private long playListPushWait = 333;
+	
+	public Playlist() {
+		lastPlayListActionPush = System.currentTimeMillis();
+	}
 	
 	/**
 	 * Carries out processing on the playlist.
+	 * @param server 
 	 */
-	public void process() {
+	public void process(Server server) {
 		// Only do processing when there are tracks to process.
 		if(tracks.size() > 0){
 			// Check that the current track is not stopped, if it is then skip it.
@@ -22,10 +37,43 @@ public class Playlist {
 					this.getCurrentTrack().play();
 				}
 			}
-			// TODO Other types of processing
+		}
+		
+		// Check to see if we are due a push to clients
+		long currentTimeMs = System.currentTimeMillis();
+		if((currentTimeMs - lastPlayListActionPush) > playListPushWait) {
+			// Queue a PUSH_PLAYLIST action
+			queuePlaylistPushAction(server.getClientManager());
+			lastPlayListActionPush = currentTimeMs;
 		}
 	}
 	
+	/**
+	 * Queues a PUSH_PLAYLIST OutgoingAction with the ClientManager.
+	 * @param clientManager 
+	 * @param server 
+	 */
+	private void queuePlaylistPushAction(ClientManager clientManager) {
+		JSONObject playListJSONObject = new JSONObject();
+		JSONArray playListJSONArray = new JSONArray();
+		// Go over each track in our PlayList and write the details to our playListJSONArray JSON array
+		for(Playable playable : tracks) {
+			JSONObject trackJSON = new JSONObject();
+			trackJSON.put("track_id", playable.getAudioFile().getId());
+			trackJSON.put("owner_id", playable.getAudioFile().getOwnerId());
+			trackJSON.put("track_state", playable.getState().toString());
+			trackJSON.put("name", playable.getAudioFile().getName());
+			trackJSON.put("artist", playable.getAudioFile().getArtist());
+			trackJSON.put("album", playable.getAudioFile().getAlbum());
+			// Add this track to out JSON array
+			playListJSONArray.put(trackJSON);
+		}
+		// Put our PlayList JSON array in its own object.
+		playListJSONObject.put("playlist", playListJSONArray);
+		// Queue a new PUSH_PLAYLIST OutgoingAction in the ClientManager to be broadcast to all connected clients
+		clientManager.queueOutgoingAction(new OutgoingAction(OutgoingActionType.PUSH_PLAYLIST, playListJSONObject));
+	}
+
 	/**
 	 * Creates a Playable object and adds it to the playlist.
 	 */

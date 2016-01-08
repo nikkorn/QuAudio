@@ -38,8 +38,9 @@ public class ClientManager implements Runnable {
 	
 	/**
 	 * Carry out processing on client map.
+	 * @param server 
 	 */
-	public void process() {
+	public void process(Server server) {
 		synchronized(clients) {
 			// Remove any disconnected clients from map and allow each client object
 			// to send any OutgoingActions that it has been queueing

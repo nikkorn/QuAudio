@@ -104,27 +104,21 @@ public class Server {
 	private void systemLoop() {
 		Log.log(Log.MessageType.INFO, "SERVER", "beginning system loop...");
 		while(isRunning) {
-			
 			// Fetch and Process all pending IncomingActions from the ClientManager
 			processIncomingActions();
-			
 			// Check to see if we have any completed file uploads, if so then add them to the playlist
 			addPendingUploadsToPlaylist();
-			
 			// Allow modules to do some processing
-			clientManager.process();
-			playlist.process();
-			
+			clientManager.process(this);
+			playlist.process(this);
 			// If we have any changes to the system properties, write them to disk.
 			if(properties.hasChanges()) {
 				properties.write();
 			}
-			
 			// If we are logging to disk we should write pending log entries.
 			if(Log.writingToFile()) {
 				Log.appendLogEntriesToFile();
 			}
-			
 			// Sleep for a bit.
 			try {
 				Thread.sleep(5);
@@ -213,11 +207,22 @@ public class Server {
 		}
 	}
 
+	/**
+	 * Adds any pending uploads to the PlayList
+	 */
 	private void addPendingUploadsToPlaylist() {
 		AudioFile pendingUpload = audioFileReceiver.getNextUpload();
 		while(pendingUpload != null) {
 			playlist.addTrack(pendingUpload);
 			pendingUpload = audioFileReceiver.getNextUpload();
 		}
+	}
+	
+	/**
+	 * Returns the ClientManager
+	 * @return clientManager
+	 */
+	public ClientManager getClientManager() {
+		return clientManager;
 	}
 }
