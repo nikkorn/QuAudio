@@ -10,6 +10,7 @@ import Config.ClientConnectionConfig;
 import FileTransfer.AudioFileSender;
 import FileTransfer.FileFormat;
 import NetProbe.ReachableQuDevice;
+import ProxyPlaylist.PlayList;
 import ProxyPlaylist.Track;
 import ProxyPlaylist.TrackState;
 
@@ -24,26 +25,48 @@ public class Device {
 	private ActionChannel actionChannel;
 	
 	// Variables that are initially set by the input ReachableQuDevice, but can change during the lifetime of a Device object.
+	private Object settingsUpdateLock = new Object();
 	private String deviceName;
 	private boolean isProtected;
 	private String[] superUsers;
 	
-	// Represents our Playlist
-	private LinkedList<Track> proxyPlaylist;
+	// Represents the latest state of our Playlist
+	private JSONObject proxyPlaylist = null;
+	// Reference to the last instance of PlayList that was constructed, this is needed as we will have to set 
+	// the object as dirty the next time that the client receives a PUSH_PLAYLIST IncomingAction from the server
+	private PlayList lastPlayList = null;
 	
 	public Device(ReachableQuDevice reachableDevice, ClientConnectionConfig clientConfig) throws IOException, RuntimeException {
 		this.reachableDevice = reachableDevice;
 		this.deviceName = reachableDevice.getDeviceName();
 		this.isProtected = reachableDevice.isProtected();
 		this.superUsers = reachableDevice.getSuperUserIds();
-		// Initialise our proxy playlist
-		proxyPlaylist = new LinkedList<Track>();
 		// Lock the ClientConfig object so that its state cannot be altered from here on out.
 		clientConfig.lock();
 		this.clientConfig = clientConfig;
 		// Create an ActionChannel.
 		this.actionChannel = new ActionChannel(reachableDevice.getAddress(), reachableDevice.getClientManagerPort(), 
 				clientConfig.getClientId(), clientConfig.getClientName(), clientConfig.getAccessPassword());
+		
+		// Start a new thread, this will be responsible for processing IncomingActions
+		Thread deviceThread = new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				// Wait a bit so we don't hog too much processing power
+				try {
+					Thread.sleep(6);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				
+				// Process incoming actions
+				process();
+			}
+			
+		});
+		deviceThread.setDaemon(true);
+		deviceThread.start();
 	}
 	
 	public String getDeviceId() {
@@ -63,17 +86,23 @@ public class Device {
 	}
 	
 	public boolean isProtected() {
-		return this.isProtected;
+		synchronized(settingsUpdateLock) {
+			return this.isProtected;
+		}
 	}
 
 	public String getDeviceName() {
-		return this.deviceName;
+		synchronized(settingsUpdateLock) {
+			return this.deviceName;
+		}
 	}
 	
 	public boolean adminModeEnabled() {
-		for(String superClientId : superUsers) {
-			if(superClientId.equals(clientConfig.getClientId())) {
-				return true;
+		synchronized(settingsUpdateLock) {
+			for(String superClientId : superUsers) {
+				if(superClientId.equals(clientConfig.getClientId())) {
+					return true;
+				}
 			}
 		}
 		return false;
@@ -83,8 +112,29 @@ public class Device {
 	 * Returns the most up to date version of our PlayList since process() last handled a PUSH_PLAYLIST IncomingAction
 	 * @return
 	 */
-	public LinkedList<Track> getPlaylist() {
-		return proxyPlaylist;
+	public PlayList getPlayList() {
+		// Construct a new ordered list to store tracks
+		LinkedList<Track> constructedPlayListTracks = new LinkedList<Track>();
+		// Populate our list of tracks
+		synchronized(proxyPlaylist) {
+			JSONArray orderedTrackJSONArray = proxyPlaylist.getJSONArray("playlist");
+			for(int trackIndex = 0; trackIndex < orderedTrackJSONArray.length(); trackIndex++) {
+				JSONObject trackJSON = orderedTrackJSONArray.getJSONObject(trackIndex);
+				Track newTrack = new Track();
+				newTrack.setTrackId(trackJSON.getString("track_id"));
+				newTrack.setOwnerId(trackJSON.getString("owner_id"));
+				newTrack.setTrackState(TrackState.valueOf(trackJSON.getString("track_state")));
+				newTrack.setName(trackJSON.getString("name"));
+				newTrack.setArtist(trackJSON.getString("artist"));
+				newTrack.setAlbum(trackJSON.getString("album"));
+				// Add the new Track to the list
+				constructedPlayListTracks.add(newTrack);
+			}
+		}
+		PlayList constructedPlayList = new PlayList(constructedPlayListTracks);
+		// Keep a reference to this object so we can mark it as dirty when we get an update on the PlayList
+		this.lastPlayList = constructedPlayList;
+		return constructedPlayList;
 	}
 	
 	/**
@@ -125,7 +175,7 @@ public class Device {
 	 * Process each IncomingAction
 	 * @return
 	 */
-	public void process() {
+	private void process() {
 		if(actionChannel.isConnected()) {
 			// Catch any settings updates and apply them before handing the IncomingAction to the user.
 			IncomingAction incomingAction = actionChannel.getIncomingActionFromList();
@@ -135,9 +185,19 @@ public class Device {
 				switch(incomingAction.getIncomingActionType()) {
 				case PLAY_FAIL:
 					break;
+					
 				case PUSH_PLAYLIST:
-					applyPlaylistUpdate(incomingAction);
+					// Store the JSON representation of our PlayList for the next time the user wants it.
+					synchronized(proxyPlaylist) {
+						this.proxyPlaylist = incomingAction.getActionInfoObject();
+					}
+					// We have a new snapshot of the state of the PlayList, if the user has grabbed a PlayList before 
+					// we need to mark it as dirty to let them know it is out-dated.
+					if(this.lastPlayList != null) {
+						lastPlayList.setDirty(true);
+					}
 					break;
+					
 				case PUSH_SETTINGS:
 					applySettingsUpdate(incomingAction);
 					break;
@@ -151,14 +211,6 @@ public class Device {
 			throw new RuntimeException("not connected to Qu server");
 		}
 	}
-
-	/**
-	 * Returns true if there are pending incoming actions
-	 * @return
-	 */
-	public boolean hasPendingActions(){
-		return actionChannel.hasPendingIncomingActions();
-	}
 	
 	/**
 	 * Applies settings changes that were passed from the server
@@ -170,32 +222,10 @@ public class Device {
         for(int i = 0; i < superClientIds.length; i++) {
         	superClientIds[i] = settingsUpdateAction.getActionInfoObject().getJSONArray("super_users").getString(i);
         }
-		this.deviceName = settingsUpdateAction.getActionInfoObject().getString("device_name");
-		this.isProtected = settingsUpdateAction.getActionInfoObject().getBoolean("isProtected");
-		this.superUsers = superClientIds;
-	}
-	
-	/**
-	 * Applies playlist changes that were passed from the server
-	 * @param settingsUpdateAction
-	 */
-	private void applyPlaylistUpdate(IncomingAction incomingAction) {
-		// Get JSON array of tracks from the IncomingObject
-		JSONArray orderedTrackJSONArray = incomingAction.getActionInfoObject().getJSONArray("playlist");
-		// Empty the existing proxyPlaylist as it is out-dated and we will be replacing it with a brand new one.
-		proxyPlaylist.clear();
-		// Populate proxyPlaylist
-		for(int trackIndex = 0; trackIndex < orderedTrackJSONArray.length(); trackIndex++) {
-			JSONObject trackJSON = orderedTrackJSONArray.getJSONObject(trackIndex);
-			Track newTrack = new Track();
-			newTrack.setTrackId(trackJSON.getString("track_id"));
-			newTrack.setOwnerId(trackJSON.getString("owner_id"));
-			newTrack.setTrackState(TrackState.valueOf(trackJSON.getString("track_state")));
-			newTrack.setName(trackJSON.getString("name"));
-			newTrack.setArtist(trackJSON.getString("artist"));
-			newTrack.setAlbum(trackJSON.getString("album"));
-			// Add the new Track to the proxy playlist
-			proxyPlaylist.add(newTrack);
-		}
+        synchronized(settingsUpdateLock) {
+        	this.deviceName = settingsUpdateAction.getActionInfoObject().getString("device_name");
+    		this.isProtected = settingsUpdateAction.getActionInfoObject().getBoolean("isProtected");
+    		this.superUsers = superClientIds;
+        }
 	}
 }

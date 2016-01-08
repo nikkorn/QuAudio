@@ -73,7 +73,7 @@ public class Test {
 				// Create a dummy OutgoingAction which will hopefully be grabbed by the server as an IncomingAction for settings update
 				// JSONObject testActionJSON = new JSONObject();
 				// testActionJSON.put("device_name", "Awesomo");
-				// testActionJSON.put("access_password", "Lemons");
+				// testActionJSON.put("access_password", "");
 				// OutgoingAction testAction = new OutgoingAction(OutgoingActionType.UPDATE_SETTINGS, testActionJSON);
 				// runningQuServerDevice.sendAction(testAction);
 				
@@ -88,12 +88,6 @@ public class Test {
 						Thread.sleep(200);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
-					}
-					
-					// Let the Device object process the actions it has received from the server
-					if(runningQuServerDevice.hasPendingActions()) {
-						System.out.println("We have an action!");
-						runningQuServerDevice.process();	
 					}
 				}
 				
