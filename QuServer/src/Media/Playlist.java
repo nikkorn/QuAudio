@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import ClientManager.ClientManager;
+import ClientManager.IncomingAction;
 import ClientManager.OutgoingAction;
 import ClientManager.OutgoingActionType;
 import FileTransfer.AudioFile;
@@ -45,6 +46,60 @@ public class Playlist {
 			// Queue a PUSH_PLAYLIST action
 			queuePlaylistPushAction(server.getClientManager());
 			lastPlayListActionPush = currentTimeMs;
+		}
+	}
+	
+	/**
+	 * Process an IncomingAction that manipulates this PlayList.
+	 * @param action
+	 */
+	public void processAction(IncomingAction action) {
+		// What type of PlayList IncomingAction is it?
+		// First, get the track id from the IncomingAction.
+		String incomingActionTrackId = action.getActionInfoObject().getString("track_id");
+		// Process the action depending on its type.
+		switch(action.getIncomingActionType()) {
+		case PLAY:
+			// The track that the user wants to play may no longer be at the 
+			// top of the queue, or may have stopped, so only play it if the 
+			// current track is in PAUSED state and that it has an id matching
+			// the one supplied in the IncomingAction. 
+			// Get the current track.	
+			Playable currentTrackToPlay = this.getCurrentTrack();
+			// Check that the current track is paused, and that the id's match.
+			if(incomingActionTrackId.equals(currentTrackToPlay.getAudioFile().getId()) 
+					&& (currentTrackToPlay.getState() == TrackState.PAUSED)) {
+				// Conditions are right, play the currently paused track.
+				currentTrackToPlay.play();
+			}
+			
+			break;
+		case PAUSE:
+			// The track that the user wants to pause may no longer be at the 
+			// top of the queue, or may have stopped, so only pause it if the 
+			// current track is in PLAYING state and that it has an id matching
+			// the one supplied in the IncomingAction. 
+			// Get the current track.	
+			Playable currentTrackToPause = this.getCurrentTrack();
+			// Check that the current track is playing, and that the id's match.
+			if(incomingActionTrackId.equals(currentTrackToPause.getAudioFile().getId()) 
+					&& (currentTrackToPause.getState() == TrackState.PLAYING)) {
+				// Conditions are right, pause the currently playing track.
+				currentTrackToPause.pause();
+			}
+			break;
+		case STOP:
+			// TODO Finish!
+			break;
+		case MOVE:
+			// TODO Finish!
+			break;
+		case SKIP:
+			// TODO Finish!
+			break;
+		default:
+			// Unknown, do nothing.
+			break;
 		}
 	}
 	

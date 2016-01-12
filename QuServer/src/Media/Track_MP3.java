@@ -3,8 +3,6 @@ package Media;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.concurrent.locks.LockSupport;
-
 import FileTransfer.AudioFile;
 import Server.Log;
 import javazoom.jl.decoder.JavaLayerException;
@@ -15,7 +13,6 @@ public class Track_MP3 extends Playable {
 	Thread playThread = null;
 	PlayRunnable playRunnable = null;
 	int fileBytes = 0;
-	boolean isPaused = false;
 	
 	public Track_MP3(AudioFile audioFile) {
 		super(audioFile);
@@ -108,9 +105,15 @@ public class Track_MP3 extends Playable {
 		
 	}
 	
+	/**
+	 * 
+	 * @author Nikolas Howard
+	 *
+	 */
 	public class PlayRunnable implements Runnable {
 		private TrackState state = TrackState.PENDING;
 		private Player player = null;
+		private volatile boolean isLocked = false;
 		
 		PlayRunnable(Player player) {
 			this.player = player;
@@ -122,26 +125,48 @@ public class Track_MP3 extends Playable {
 				while(state == TrackState.PENDING) {}
 				// Start the track loop, we should NOT do any intensive stuff here as that will mess up playback.
 				do {
+					// Check to see if we need to pause 
 				    if(state == TrackState.PAUSED) {
-				        LockSupport.park();
-				    } else if(state == TrackState.STOPPED) {
+				    	// Lock this PlayRunnable 
+				    	isLocked = true;
+				    	while(isLocked) {
+				    		// We are currently paused. Might as well sleep for a bit.
+				    		try {
+								Thread.sleep(5);
+							} catch (InterruptedException e) { e.printStackTrace(); }
+				    	}
+				    } 
+				    // Check to see if we need to stop
+				    if(state == TrackState.STOPPED) {
 				    	break;
 				    }
 				} while(player.play(1));
-				// We have finished play all bytes in the track. Move to the STOPPED state.
+				// We have finished playing all bytes in the track. Move to the STOPPED state.
 				state = TrackState.STOPPED;
 			} catch (JavaLayerException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
-
+		
+		/**
+		 * Get the state for this PlayRunnable
+		 * @param state
+		 */
 		public TrackState getState() {
 			return state;
 		}
-
+		
+		/**
+		 * Set the state for this PlayRunnable
+		 * @param state
+		 */
 		public void setState(TrackState state) {
 			this.state = state;
+			// If we are changing state to anything other than PAUSED and the PlayRunnable
+			// thread is currently locked then unlock it.
+			if(state != TrackState.PAUSED && isLocked) {
+				isLocked = false;
+			}
 		}
 	}
 }

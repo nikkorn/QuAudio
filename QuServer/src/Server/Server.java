@@ -136,24 +136,13 @@ public class Server {
 		for(IncomingAction action : clientManager.getPendingIncomingActions()) {
 			// What type of action is it?
 			switch(action.getIncomingActionType()) {
-			// A client has requested that we pause the currently playing audio file
-			case PAUSE:
-				break;
-			
-			// A client has requested that we play the current audio file (if it is paused)
-			case PLAY:
-				break;
-				
-			// A client has requested that we promote/demote a track in the playlist queue
-			case MOVE:
-				break;
-				
-			// A client has requested that we move to a different position in the currently playing track
-			case SKIP:
-				break;
-				
-			// A client has requested that we stop the currently playing/paused track and move on to the next (if there is one)
-			case STOP:
+			case PAUSE:	// A client has requested that we pause the currently playing audio file
+			case PLAY:	// A client has requested that we play the current audio file (if it is paused)
+			case MOVE:	// A client has requested that we promote/demote a track in the playlist queue
+			case SKIP:	// A client has requested that we move to a different position in the currently playing track
+			case STOP:	// A client has requested that we stop the currently playing/paused track and move on to the next (if there is one)
+				// It is the responsibility of the PlayList to process this IncomingAction.
+				playlist.processAction(action);
 				break;
 				
 			// A client has requested to become a super user, and has supplied an attempt at the super password

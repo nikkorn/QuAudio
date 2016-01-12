@@ -121,7 +121,7 @@ public class Device {
 			JSONArray orderedTrackJSONArray = proxyPlaylist.getJSONArray("playlist");
 			for(int trackIndex = 0; trackIndex < orderedTrackJSONArray.length(); trackIndex++) {
 				JSONObject trackJSON = orderedTrackJSONArray.getJSONObject(trackIndex);
-				Track newTrack = new Track();
+				Track newTrack = new Track(this);
 				newTrack.setTrackId(trackJSON.getString("track_id"));
 				newTrack.setOwnerId(trackJSON.getString("owner_id"));
 				newTrack.setTrackState(TrackState.valueOf(trackJSON.getString("track_state")));
