@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -24,6 +25,8 @@ import Server.Server;
 public class ClientManager implements Runnable {
 	private ServerSocket clientManagerServerSocket = null;
 	private HashMap<String, Client> clients = new HashMap<String, Client>();
+	private Object newcomersBoolLock = new Object();
+	private volatile boolean hasNewcomers = false;
 	
 	public ClientManager(int port) {
 		try {
@@ -179,6 +182,25 @@ public class ClientManager implements Runnable {
 		synchronized(clients) {
 			clients.put(requestJSON.getString("client_id"), acceptedClient);
 		}
+		
+		// Set a flag to show that the ClientManager has a new client. This indicates that important 
+		// information should be re-broadcast
+		synchronized(newcomersBoolLock) {
+			hasNewcomers = true;
+		}
+	}
+	
+	/**
+	 * Returns true if the ClientManager has added any new clients since the last time hasNewClients() was called.
+	 * @return
+	 */
+	public boolean hasNewClients() {
+		boolean hasNewClients = false;
+		synchronized(newcomersBoolLock) {
+			hasNewClients = this.hasNewcomers;
+			this.hasNewcomers = false;
+		}
+		return hasNewClients;
 	}
 	
 	/**
@@ -189,6 +211,24 @@ public class ClientManager implements Runnable {
 		synchronized(clients) {
 			for(Client client : clients.values()) {
 				client.queuePendingOutgoingAction(outgoingAction);
+			}
+		}
+	}
+	
+	/**
+	 * Sends a welcome package of important OutgoingActions to newly connected clients.
+	 * @param outgoingActions
+	 */
+	public void sendWelcomePackages(ArrayList<OutgoingAction> outgoingActions) {
+		synchronized(clients) {
+			for(Client client : clients.values()) {
+				// Only send the package if the client is newly connected.
+				if(client.isNewClient()) {
+					// Queue each OutgoingAction that we need to send to the new client
+					for(OutgoingAction outgoingAction : outgoingActions) {
+						client.queuePendingOutgoingAction(outgoingAction);
+					}
+				}
 			}
 		}
 	}

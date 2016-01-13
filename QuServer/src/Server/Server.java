@@ -1,6 +1,5 @@
 package Server;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.UUID;
 import org.json.JSONArray;
@@ -14,9 +13,6 @@ import FileTransfer.AudioFileReceiver;
 import Media.Playlist;
 import NetBeacon.Beacon;
 import Properties.Properties;
-import QuInterface.LEDBehaviour;
-import QuInterface.LEDColourDefault;
-import QuInterface.QuInterface;
 
 /**
  * 
@@ -111,6 +107,11 @@ public class Server {
 			// Allow modules to do some processing
 			clientManager.process(this);
 			playlist.process(this);
+			// Do we have any new connections? If so then they will need to be sent a welcome package ;)
+			if(clientManager.hasNewClients()) {
+				// We have had at least one newcomer.
+				createAndQueueWelcomePackages();
+			}
 			// If we have any changes to the system properties, write them to disk.
 			if(properties.hasChanges()) {
 				properties.write();
@@ -128,6 +129,21 @@ public class Server {
 		}
 	}
 	
+	/**
+	 * Called when the ClientManager has received some new clients.
+	 * Sends a welcome package of important OutgoingActions to these newbies.
+	 */
+	private void createAndQueueWelcomePackages() {
+		ArrayList<OutgoingAction> welcomePackage = new ArrayList<OutgoingAction>();
+		// Add PUSH_PLAYLIST to welcome package
+		welcomePackage.add(playlist.generatePushPlayListOutgoingAction());
+		// Add PUSH_VOLUME to welcome package
+		JSONObject volumeSetJSON = new JSONObject();
+		volumeSetJSON.put("volume_level", Utils.getMasterVolume());
+		welcomePackage.add(new OutgoingAction(OutgoingActionType.PUSH_VOLUME, volumeSetJSON));
+		clientManager.sendWelcomePackages(welcomePackage);
+	}
+
 	/**
 	 * Fetch and Process all pending IncomingActions from the ClientManager
 	 */
@@ -193,16 +209,8 @@ public class Server {
 			// A super client has requested that the system shut down.
 			case EXIT:
 				Log.log(Log.MessageType.INFO, "SERVER", "system shutdown requested");
-				// Interact with the QuInterface to set a standby (red) light
-				QuInterface.show(LEDColourDefault.RED, LEDBehaviour.GLOW);
-				// Shutdown the device (only if Unix like OS)
-				if(properties.isOSUnixLike()) {
-					try {
-						Runtime.getRuntime().exec("sudo shutdown -h now");
-					} catch (IOException e) {
-						Log.log(Log.MessageType.ERROR, "SERVER", "failed to shutdown");
-					}
-				}
+				// Attempt to shutdown the device.
+				Utils.shutdownDevice(Server.properties.isOSUnixLike());
 				break;
 				
 			// We have an unknown type, just ignore this IncomingAction

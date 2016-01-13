@@ -245,10 +245,10 @@ public class Device {
 	 * @param incomingAction
 	 */
 	private void applyVolumeUpdate(IncomingAction volumeUpdateAction) {
-		 synchronized(settingsUpdateLock) {
-        	this.deviceName = volumeUpdateAction.getActionInfoObject().getString("volume_level");
-        	this.areSettingsDirty = true;
-	     }
+		synchronized(settingsUpdateLock) {
+			this.volumeLevel = volumeUpdateAction.getActionInfoObject().getInt("volume_level");
+			this.areSettingsDirty = true;
+		}
 	}
 
 	/**

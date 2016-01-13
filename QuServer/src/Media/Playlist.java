@@ -3,7 +3,6 @@ package Media;
 import java.util.LinkedList;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import ClientManager.ClientManager;
 import ClientManager.IncomingAction;
 import ClientManager.OutgoingAction;
 import ClientManager.OutgoingActionType;
@@ -14,14 +13,8 @@ import Server.Server;
 public class Playlist {
 	// The tracks that are currently in the playlist
 	private LinkedList<Playable> tracks = new LinkedList<Playable>();
-	// The last time that the PlayList queued a PUSH_PLAYLIST in the ClientManager
-	private long lastPlayListActionPush;
-	// The number of milliseconds between each time the PlayList will queue a PUSH_PLAYLIST action
-	private long playListPushWait = 333;
-	
-	public Playlist() {
-		lastPlayListActionPush = System.currentTimeMillis();
-	}
+	// Has the PlayList been altered (are we required to send a new PUSH_PLAYLIST?)
+	private boolean isPushPlayListPending = false;
 	
 	/**
 	 * Carries out processing on the playlist.
@@ -36,16 +29,16 @@ public class Playlist {
 				tracks.remove(0);
 				if(tracks.size() > 0) {
 					this.getCurrentTrack().play();
+					// We need to broadcast change
+					setPushPlayListPending(true);
 				}
 			}
 		}
-		
-		// Check to see if we are due a push to clients
-		long currentTimeMs = System.currentTimeMillis();
-		if((currentTimeMs - lastPlayListActionPush) > playListPushWait) {
-			// Queue a PUSH_PLAYLIST action
-			queuePlaylistPushAction(server.getClientManager());
-			lastPlayListActionPush = currentTimeMs;
+		// Has the state of the PlayList changed since the last time we broadcast it's state to clients?
+		// If so then we will need to send it again.
+		if(isPushPlayListPending()) {
+			// Queue a new PUSH_PLAYLIST OutgoingAction in the ClientManager to be broadcast to all connected clients
+			server.getClientManager().queueOutgoingAction(this.generatePushPlayListOutgoingAction());
 		}
 	}
 	
@@ -71,6 +64,8 @@ public class Playlist {
 					&& (currentTrackToPlay.getState() == TrackState.PAUSED)) {
 				// Conditions are right, play the currently paused track.
 				currentTrackToPlay.play();
+				// We need to broadcast change
+				setPushPlayListPending(true);
 			}
 			
 			break;
@@ -86,16 +81,24 @@ public class Playlist {
 					&& (currentTrackToPause.getState() == TrackState.PLAYING)) {
 				// Conditions are right, pause the currently playing track.
 				currentTrackToPause.pause();
+				// We need to broadcast change
+				setPushPlayListPending(true);
 			}
 			break;
 		case STOP:
 			// TODO Finish!
+			// We need to broadcast change
+			setPushPlayListPending(true);
 			break;
 		case MOVE:
 			// TODO Finish!
+			// We need to broadcast change
+			setPushPlayListPending(true);
 			break;
 		case SKIP:
 			// TODO Finish!
+			// We need to broadcast change
+			setPushPlayListPending(true);
 			break;
 		default:
 			// Unknown, do nothing.
@@ -104,11 +107,10 @@ public class Playlist {
 	}
 	
 	/**
-	 * Queues a PUSH_PLAYLIST OutgoingAction with the ClientManager.
-	 * @param clientManager 
-	 * @param server 
+	 * Creates and returns a new PUSH_PLAYLIST OutgoingAction.
+	 * @return PUSH_PLAYLIST OutgoingAction
 	 */
-	private void queuePlaylistPushAction(ClientManager clientManager) {
+	public OutgoingAction generatePushPlayListOutgoingAction() {
 		JSONObject playListJSONObject = new JSONObject();
 		JSONArray playListJSONArray = new JSONArray();
 		// Go over each track in our PlayList and write the details to our playListJSONArray JSON array
@@ -125,17 +127,16 @@ public class Playlist {
 		}
 		// Put our PlayList JSON array in its own object.
 		playListJSONObject.put("playlist", playListJSONArray);
-		// Queue a new PUSH_PLAYLIST OutgoingAction in the ClientManager to be broadcast to all connected clients
-		clientManager.queueOutgoingAction(new OutgoingAction(OutgoingActionType.PUSH_PLAYLIST, playListJSONObject));
+		return new OutgoingAction(OutgoingActionType.PUSH_PLAYLIST, playListJSONObject);
 	}
 
 	/**
-	 * Creates a Playable object and adds it to the playlist.
+	 * Creates a Playable object and adds it to the PlayList.
+	 * @param audioFile
 	 */
 	public void addTrack(AudioFile audioFile){
 		// Initialise a new Playable object.
 		Playable track = null;
-		
 		// The file format will define which subclass of Playable we will need.
 		switch(audioFile.getFileFormat()) {
 		case FLAC:
@@ -157,18 +158,18 @@ public class Playlist {
 			// TODO Error, something is fishy here
 			break;
 		}
-		
 		// TODO Check if there is an existing track that matches the one that is currently playing, if so 
 		// then don't play it and notify the user who attempted to push it.
 		tracks.add(track);
 		Log.log(Log.MessageType.INFO, "PLAYLIST", "added track '" + audioFile.getName() + "'");
-		
 		// If the track that we have just added is the only track in the playlist, then just start playing it.
 		if(tracks.size() == 1) {
 			track.initialise(true);
 		} else {
 			track.initialise(false);
 		}
+		// We need to broadcast change
+		setPushPlayListPending(true);
 	}
 	
 	/**
@@ -181,29 +182,22 @@ public class Playlist {
 			return null;
 		}
 	}
-	
+
 	/**
-	 * Immediately stops the current song, clears it off the stack, and initialises and plays the next.
+	 * Are we due a PUSH_PLAYLIST broadcast?
+	 * @return
 	 */
-	public void skip() {
-		Log.log(Log.MessageType.INFO, "PLAYLIST", "skipping track '" + getCurrentTrack().getAudioFile().getName() + "'");
-		
-		// If the track we want to skip is still active (not stopped) then stop it before removing it.
-		if(getCurrentTrack().getState() != TrackState.STOPPED) {
-			getCurrentTrack().stop();
-		}
-		
-		// TODO add an abstract cleanup method to Playable to be called here.
-		
-		// Delete audio data for this file.
-		getCurrentTrack().deleteAudioData();
-		
-		// Remove the track  we've finished with
-		tracks.remove(0);
-		
-		// Check to see if there is another song to skip to, if not then do nothing, otherwise initialise and play it.
-		if(tracks.size() > 0) {
-			getCurrentTrack().play();
-		} 
+	public boolean isPushPlayListPending() {
+		boolean pushPending = this.isPushPlayListPending;
+		this.isPushPlayListPending = false;
+		return pushPending;
+	}
+
+	/**
+	 * Set whether we are due a PUSH_PLAYLIST broadcast?
+	 * @param isPushPlayListPending
+	 */
+	public void setPushPlayListPending(boolean isPushPlayListPending) {
+		this.isPushPlayListPending = isPushPlayListPending;
 	}
 }

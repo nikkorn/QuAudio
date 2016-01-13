@@ -1,6 +1,9 @@
 package Server;
 
 import java.io.IOException;
+import QuInterface.LEDBehaviour;
+import QuInterface.LEDColourDefault;
+import QuInterface.QuInterface;
 
 /**
  * 
@@ -50,6 +53,23 @@ public class Utils {
 	public static int getMasterVolume() {
 		return masterVolumeLevel;
 	}
+	//------------------------------------------------------------------
+	
+	//----------------------------- Power ------------------------------
+	
+	public static void shutdownDevice(boolean isOSUnixLike) {
+		// Interact with the QuInterface to set a standby (red) light
+		QuInterface.show(LEDColourDefault.RED, LEDBehaviour.GLOW);
+		// Shutdown the device (only if Unix like OS)
+		if(isOSUnixLike) {
+			try {
+				Runtime.getRuntime().exec("sudo shutdown -h now");
+			} catch (IOException e) {
+				Log.log(Log.MessageType.ERROR, "SERVER", "failed to shutdown");
+			}
+		}
+	}
+	
 	//------------------------------------------------------------------
 	
 }

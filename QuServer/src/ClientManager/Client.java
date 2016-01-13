@@ -20,6 +20,8 @@ public class Client {
 	private PrintWriter outgoingActionPrintWriter;
 	// The ClientActionListener that runs in its own thread listening for actions from this client
 	private ClientActionListener clientActionListener;
+	// Is this a new client? (will require a welcome package)
+	private boolean isNewClient = true;
 	
 	public Client(BufferedReader actionReader, PrintWriter actionWriter) {
 		// Set the outgoingActionPrintWriter with which we will be sending all OutgoingActions
@@ -83,7 +85,21 @@ public class Client {
 		return incomingActionList;
 	}
 	
+	/**
+	 * Returns true/false depending on whether this client is connected.
+	 * @return isConnected
+	 */
 	public boolean isConnected() {
 		return isConnected && clientActionListener.isConnected();
+	}
+
+	/**
+	 * Returns true if this is a new client (requires welcome package)
+	 * @return isNewClient
+	 */
+	public boolean isNewClient() {
+		boolean isNew = this.isNewClient;
+		this.isNewClient = false;
+		return isNew;
 	}
 }
