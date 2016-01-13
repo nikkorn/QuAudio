@@ -148,6 +148,21 @@ public class Server {
 			// A client has requested to become a super user, and has supplied an attempt at the super password
 			case ADMIN_REQUEST:
 				break;
+			
+			// A super user client has requested to change the system volume.
+			case UPDATE_VOLUME:
+				// Check that this user actually is a super user.
+				if(properties.isSuperUser(action.getActionInfoObject().getString("client_id"))) {
+					// Set the system volume.
+					int newVolumeLevel = action.getActionInfoObject().getInt("volume_level");
+					Utils.setMasterVolume(newVolumeLevel);
+					// Notify all connected users about the change in volume.
+					JSONObject volumeSetJSON = new JSONObject();
+					volumeSetJSON.put("volume_level", newVolumeLevel);
+					OutgoingAction volumeSetPushAction = new OutgoingAction(OutgoingActionType.PUSH_VOLUME, volumeSetJSON);
+					clientManager.queueOutgoingAction(volumeSetPushAction);
+				}
+				break;
 				
 			// A super client has supplied updated system settings
 			case UPDATE_SETTINGS:
@@ -180,11 +195,13 @@ public class Server {
 				Log.log(Log.MessageType.INFO, "SERVER", "system shutdown requested");
 				// Interact with the QuInterface to set a standby (red) light
 				QuInterface.show(LEDColourDefault.RED, LEDBehaviour.GLOW);
-				// Shutdown the device (assumes this is unix based system)
-				try {
-					Runtime.getRuntime().exec("sudo shutdown -h now");
-				} catch (IOException e) {
-					Log.log(Log.MessageType.ERROR, "SERVER", "failed to shutdown");
+				// Shutdown the device (only if Unix like OS)
+				if(properties.isOSUnixLike()) {
+					try {
+						Runtime.getRuntime().exec("sudo shutdown -h now");
+					} catch (IOException e) {
+						Log.log(Log.MessageType.ERROR, "SERVER", "failed to shutdown");
+					}
 				}
 				break;
 				

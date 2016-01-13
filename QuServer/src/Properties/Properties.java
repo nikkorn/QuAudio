@@ -162,6 +162,24 @@ public class Properties {
 		return superUserClientIds;
 	}
 	
+	public synchronized boolean isSuperUser(String userId) {
+		Node superUsersNode = xmlDoc.getDocumentElement().getElementsByTagName("SUPER_USERS").item(0);
+		for(int nodeIndex = 0; nodeIndex < superUsersNode.getChildNodes().getLength(); nodeIndex++) {
+			String currentSuperUser = superUsersNode.getChildNodes().item(nodeIndex).getTextContent();
+			if(currentSuperUser.equals(userId)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public boolean isOSUnixLike() {
+		if(System.getProperty("os.name").startsWith("Windows")) {
+			return false;
+		} 
+		return true;
+	}
+	
 	public synchronized boolean hasChanges() {
 		boolean hasChanged = propertiesChanged;
 		propertiesChanged = false;

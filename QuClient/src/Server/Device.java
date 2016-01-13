@@ -26,9 +26,11 @@ public class Device {
 	
 	// Variables that are initially set by the input ReachableQuDevice, but can change during the lifetime of a Device object.
 	private Object settingsUpdateLock = new Object();
+	private volatile boolean areSettingsDirty = false;
 	private String deviceName;
 	private boolean isProtected;
 	private String[] superUsers;
+	private int volumeLevel = 0;
 	
 	// Represents the latest state of our Playlist
 	private JSONObject proxyPlaylist = null;
@@ -95,6 +97,12 @@ public class Device {
 	public String getDeviceName() {
 		synchronized(settingsUpdateLock) {
 			return this.deviceName;
+		}
+	}
+	
+	public int getDeviceVolume() {
+		synchronized(settingsUpdateLock) {
+			return this.volumeLevel;
 		}
 	}
 	
@@ -189,19 +197,11 @@ public class Device {
 					break;
 					
 				case PUSH_PLAYLIST:
-					// Store the JSON representation of our PlayList for the next time the user wants it.
-					if(proxyPlaylist == null) {
-						this.proxyPlaylist = incomingAction.getActionInfoObject();
-					} else {
-						synchronized(proxyPlaylist) {
-							this.proxyPlaylist = incomingAction.getActionInfoObject();
-						}
-					}
-					// We have a new snapshot of the state of the PlayList, if the user has grabbed a PlayList before 
-					// we need to mark it as dirty to let them know it is out-dated.
-					if(this.lastPlayList != null) {
-						lastPlayList.setDirty(true);
-					}
+					applyPlayListUpdate(incomingAction);
+					break;
+					
+				case PUSH_VOLUME:
+					applyVolumeUpdate(incomingAction);
 					break;
 					
 				case PUSH_SETTINGS:
@@ -221,6 +221,37 @@ public class Device {
 	}
 	
 	/**
+	 * Applies a PlayList state change to this Device
+	 * @param incomingAction
+	 */
+	private void applyPlayListUpdate(IncomingAction playlistUpdateAction) {
+		// Store the JSON representation of our PlayList for the next time the user wants it.
+		if(proxyPlaylist == null) {
+			this.proxyPlaylist = playlistUpdateAction.getActionInfoObject();
+		} else {
+			synchronized(proxyPlaylist) {
+				this.proxyPlaylist = playlistUpdateAction.getActionInfoObject();
+			}
+		}
+		// We have a new snapshot of the state of the PlayList, if the user has grabbed a PlayList before 
+		// we need to mark it as dirty to let them know it is out-dated.
+		if(this.lastPlayList != null) {
+			lastPlayList.setDirty(true);
+		}
+	}
+
+	/**
+	 * Applies a system volume change to this Device
+	 * @param incomingAction
+	 */
+	private void applyVolumeUpdate(IncomingAction volumeUpdateAction) {
+		 synchronized(settingsUpdateLock) {
+        	this.deviceName = volumeUpdateAction.getActionInfoObject().getString("volume_level");
+        	this.areSettingsDirty = true;
+	     }
+	}
+
+	/**
 	 * Applies settings changes that were passed from the server
 	 * @param settingsUpdateAction
 	 */
@@ -234,7 +265,21 @@ public class Device {
         	this.deviceName = settingsUpdateAction.getActionInfoObject().getString("device_name");
     		this.isProtected = settingsUpdateAction.getActionInfoObject().getBoolean("isProtected");
     		this.superUsers = superClientIds;
+    		this.areSettingsDirty = true;
         }
+	}
+	
+	/**
+	 * Returns true if the settings of the device (e.g. name, volume) have changed since the last time hasDirtySettings() was called.
+	 * @return hasDirtySettings
+	 */
+	public boolean hasDirtySettings() {
+		boolean dirty = false;
+		synchronized(settingsUpdateLock) {
+        	dirty = this.areSettingsDirty;
+        	this.areSettingsDirty = false;
+        }
+		return dirty;
 	}
 
 	/**
