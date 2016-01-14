@@ -77,8 +77,10 @@ public class Device {
 						e.printStackTrace();
 					}
 					// Process incoming actions and check that we were still connected.
-					connected = process();
+					connected = processIncomingActions();
 				}
+				// We have disconnected, notify subscribing QuEventListeners.
+				notifyQuEventListeners(QuEventType.DISCONNECTION);
 			}
 		});
 		deviceThread.setDaemon(true);
@@ -234,7 +236,7 @@ public class Device {
 	 * Process each IncomingAction
 	 * @return Whether the connection was broken
 	 */
-	private boolean process() {
+	private boolean processIncomingActions() {
 		if(actionChannel.isConnected()) {
 			// Catch any settings updates and apply them before handing the IncomingAction to the user.
 			IncomingAction incomingAction = actionChannel.getIncomingActionFromList();
@@ -247,14 +249,20 @@ public class Device {
 					
 				case PUSH_PLAYLIST:
 					applyPlayListUpdate(incomingAction);
+					// Notify subscribing QuEventListeners.
+					notifyQuEventListeners(QuEventType.PLAYLIST_UPDATED);
 					break;
 					
 				case PUSH_VOLUME:
 					applyVolumeUpdate(incomingAction);
+					// Notify subscribing QuEventListeners.
+					notifyQuEventListeners(QuEventType.VOLUME_UPDATED);
 					break;
 					
 				case PUSH_SETTINGS:
 					applySettingsUpdate(incomingAction);
+					// Notify subscribing QuEventListeners.
+					notifyQuEventListeners(QuEventType.SETTINGS_UPDATED);
 					break;
 				}
 				
@@ -387,12 +395,21 @@ public class Device {
 						}
 					}).start();
 					break;
-				case SETTINGS_UPDATE:
+				case SETTINGS_UPDATED:
 					// Call the appropriate event handler on a new thread.
 					new Thread(new Runnable() {
 						@Override
 						public void run() {
 							subscriber.onQuSettingsUpdate();
+						}
+					}).start();
+					break;
+				case VOLUME_UPDATED:
+					// Call the appropriate event handler on a new thread.
+					new Thread(new Runnable() {
+						@Override
+						public void run() {
+							subscriber.onQuMasterVolumeUpdate();
 						}
 					}).start();
 					break;

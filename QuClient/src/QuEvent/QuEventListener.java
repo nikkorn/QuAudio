@@ -18,6 +18,11 @@ public interface QuEventListener {
 	public void onQuPlayListUpdate();
 	
 	/**
+	 * Called when the Device master volume is updated.
+	 */
+	public void onQuMasterVolumeUpdate();
+	
+	/**
 	 * Called when the connection to the QuServer is broken.
 	 */
 	public void quQuDisconnect();

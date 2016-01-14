@@ -7,6 +7,7 @@ package QuEvent;
  */
 public enum QuEventType {
 	PLAYLIST_UPDATED,
-	SETTINGS_UPDATE,
+	SETTINGS_UPDATED,
+	VOLUME_UPDATED,
 	DISCONNECTION
 }
