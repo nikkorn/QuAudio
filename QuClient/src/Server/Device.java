@@ -372,6 +372,8 @@ public class Device {
 	 * @param The type of event
 	 */
 	public void notifyQuEventListeners(QuEventType eventType) {
+		// We need a reference to this Device instance.
+		Device sourceDevice = this;
 		synchronized(subscribingQuEventListeners) {
 			// Notify each subscriber in turn.
 			for(QuEventListener subscriber : subscribingQuEventListeners) {
@@ -382,7 +384,7 @@ public class Device {
 					new Thread(new Runnable() {
 						@Override
 						public void run() {
-							subscriber.quQuDisconnect();
+							subscriber.quQuDisconnect(sourceDevice);
 						}
 					}).start();
 					break;
@@ -391,7 +393,7 @@ public class Device {
 					new Thread(new Runnable() {
 						@Override
 						public void run() {
-							subscriber.onQuPlayListUpdate();
+							subscriber.onQuPlayListUpdate(sourceDevice);
 						}
 					}).start();
 					break;
@@ -400,7 +402,7 @@ public class Device {
 					new Thread(new Runnable() {
 						@Override
 						public void run() {
-							subscriber.onQuSettingsUpdate();
+							subscriber.onQuSettingsUpdate(sourceDevice);
 						}
 					}).start();
 					break;
@@ -409,7 +411,7 @@ public class Device {
 					new Thread(new Runnable() {
 						@Override
 						public void run() {
-							subscriber.onQuMasterVolumeUpdate();
+							subscriber.onQuMasterVolumeUpdate(sourceDevice);
 						}
 					}).start();
 					break;

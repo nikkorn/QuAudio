@@ -1,5 +1,7 @@
 package QuEvent;
 
+import Server.Device;
+
 /**
  * An observable for listening for Device state changes.
  * @author Nikolas Howard 
@@ -9,21 +11,24 @@ public interface QuEventListener {
 	
 	/**
 	 * Called when the Device settings are updated.
+	 * @param sourceDevice
 	 */
-	public void onQuSettingsUpdate();
+	public void onQuSettingsUpdate(Device sourceDevice);
 	
 	/**
 	 * Called when the Device PlayList is updated.
+	 * @param sourceDevice
 	 */
-	public void onQuPlayListUpdate();
+	public void onQuPlayListUpdate(Device sourceDevice);
 	
 	/**
 	 * Called when the Device master volume is updated.
+	 * @param sourceDevice
 	 */
-	public void onQuMasterVolumeUpdate();
-	
+	public void onQuMasterVolumeUpdate(Device sourceDevice);
 	/**
 	 * Called when the connection to the QuServer is broken.
+	 * @param sourceDevice
 	 */
-	public void quQuDisconnect();
+	public void quQuDisconnect(Device sourceDevice);
 }
