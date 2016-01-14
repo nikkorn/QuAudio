@@ -3,6 +3,7 @@ package Server;
 import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -13,6 +14,8 @@ import NetProbe.ReachableQuDevice;
 import ProxyPlaylist.PlayList;
 import ProxyPlaylist.Track;
 import ProxyPlaylist.TrackState;
+import QuEvent.QuEventListener;
+import QuEvent.QuEventType;
 
 /**
  * Represents an instance of a Qu Server
@@ -32,12 +35,22 @@ public class Device {
 	private String[] superUsers;
 	private int volumeLevel = 0;
 	
+	// List of subscribing QuEventListeners who will be updated on events created by the IncomingAction processing thread.
+	private ArrayList<QuEventListener> subscribingQuEventListeners = new ArrayList<QuEventListener>();
+	
 	// Represents the latest state of our Playlist
 	private JSONObject proxyPlaylist = null;
 	// Reference to the last instance of PlayList that was constructed, this is needed as we will have to set 
 	// the object as dirty the next time that the client receives a PUSH_PLAYLIST IncomingAction from the server
 	private PlayList lastPlayList = null;
 	
+	/**
+	 * Constructor
+	 * @param reachableDevice
+	 * @param clientConfig
+	 * @throws IOException
+	 * @throws RuntimeException
+	 */
 	public Device(ReachableQuDevice reachableDevice, ClientConnectionConfig clientConfig) throws IOException, RuntimeException {
 		this.reachableDevice = reachableDevice;
 		this.deviceName = reachableDevice.getDeviceName();
@@ -72,40 +85,76 @@ public class Device {
 		deviceThread.start();
 	}
 	
+	/**
+	 * Get the device id of the QuServer.
+	 * @return id
+	 */
 	public String getDeviceId() {
 		return reachableDevice.getDeviceId();
 	}
 
+	/**
+	 * Get the network address of the QuServer.
+	 * @return address
+	 */
 	public String getAddress() {
 		return reachableDevice.getAddress();
 	}
 
+	/**
+	 * Get the port on which the QuServer is listening for incoming Audio File uploads. 
+	 * @return listening port
+	 */
 	public int getAudioFileReceiverPort() {
 		return reachableDevice.getAudioFileReceiverPort();
 	}
 
+	/**
+	 * Get the port on which the QuServer is listening for incoming Client connection requests.
+	 * @return listening port
+	 */
 	public int getClientManagerPort() {
 		return reachableDevice.getClientManagerPort();
 	}
 	
+	/**
+	 * Returns true if the QuServer requires an access password in order to connect.
+	 * This value can be updated by the server during the lifetime of a Device instance.
+	 * @return isProtected
+	 */
 	public boolean isProtected() {
 		synchronized(settingsUpdateLock) {
 			return this.isProtected;
 		}
 	}
 
+	/**
+	 * Returns the name of the QuServer.
+	 * This value can be updated by the server during the lifetime of a Device instance.
+	 * @return quserver name
+	 */
 	public String getDeviceName() {
 		synchronized(settingsUpdateLock) {
 			return this.deviceName;
 		}
 	}
 	
+	/**
+	 * Returns the master volume of the device hosting the QuServer.  
+	 * This value can be updated by the server during the lifetime of a Device instance.
+	 * @return volume level (range 0 - 100)
+	 */
 	public int getDeviceVolume() {
 		synchronized(settingsUpdateLock) {
 			return this.volumeLevel;
 		}
 	}
 	
+	/**
+	 * Returns true if the client that initalised the Device object instance is an admin at the time.
+	 * This value can be updated by the server during the lifetime of a Device instance.
+	 * @return is admin (super) user.
+	 */
 	public boolean adminModeEnabled() {
 		synchronized(settingsUpdateLock) {
 			for(String superClientId : superUsers) {
@@ -119,7 +168,7 @@ public class Device {
 	
 	/**
 	 * Returns the most up to date version of our PlayList since process() last handled a PUSH_PLAYLIST IncomingAction
-	 * @return
+	 * @return latest playlist
 	 */
 	public PlayList getPlayList() {
 		// Construct a new ordered list to store tracks
@@ -221,7 +270,7 @@ public class Device {
 	}
 	
 	/**
-	 * Applies a PlayList state change to this Device
+	 * Applies a PlayList state change to this Device.
 	 * @param incomingAction
 	 */
 	private void applyPlayListUpdate(IncomingAction playlistUpdateAction) {
@@ -241,7 +290,7 @@ public class Device {
 	}
 
 	/**
-	 * Applies a system volume change to this Device
+	 * Applies a system volume change to this Device.
 	 * @param incomingAction
 	 */
 	private void applyVolumeUpdate(IncomingAction volumeUpdateAction) {
@@ -252,7 +301,7 @@ public class Device {
 	}
 
 	/**
-	 * Applies settings changes that were passed from the server
+	 * Applies settings changes that were passed from the QuServer.
 	 * @param settingsUpdateAction
 	 */
 	private void applySettingsUpdate(IncomingAction settingsUpdateAction) {
@@ -280,6 +329,76 @@ public class Device {
         	this.areSettingsDirty = false;
         }
 		return dirty;
+	}
+	
+	/**
+	 * Adds a new QuEventListener to our list of listeners to be notified on device state changes.
+	 * @param eventListener
+	 */
+	public void addQuEventListener(QuEventListener newEventListener) {
+		synchronized(subscribingQuEventListeners) {
+			// Is this already a subscriber? If so then just return.
+			if(subscribingQuEventListeners.contains(newEventListener)) {
+				return;
+			}
+			// Add the new subscriber.
+			subscribingQuEventListeners.add(newEventListener);
+		}
+	}
+	
+	/**
+	 * Adds a new QuEventListener to our list of listeners to be notified on device state changes.
+	 * @param eventListener
+	 */
+	public void removeQuEventListener(QuEventListener eventListener) {
+		synchronized(subscribingQuEventListeners) {
+			// Only remove if this is already a subscriber
+			if(subscribingQuEventListeners.contains(eventListener)) {
+				subscribingQuEventListeners.remove(eventListener);
+			}
+		}
+	}
+	
+	/**
+	 * Notify any subscribing QuEventListeners of a QuEvent that was picked up when processing IncomingActions.
+	 * @param The type of event
+	 */
+	public void notifyQuEventListeners(QuEventType eventType) {
+		synchronized(subscribingQuEventListeners) {
+			// Notify each subscriber in turn.
+			for(QuEventListener subscriber : subscribingQuEventListeners) {
+				// The type of handling method we call depends on the event type.
+				switch(eventType) {
+				case DISCONNECTION:
+					// Call the appropriate event handler on a new thread.
+					new Thread(new Runnable() {
+						@Override
+						public void run() {
+							subscriber.quQuDisconnect();
+						}
+					}).start();
+					break;
+				case PLAYLIST_UPDATED:
+					// Call the appropriate event handler on a new thread.
+					new Thread(new Runnable() {
+						@Override
+						public void run() {
+							subscriber.onQuPlayListUpdate();
+						}
+					}).start();
+					break;
+				case SETTINGS_UPDATE:
+					// Call the appropriate event handler on a new thread.
+					new Thread(new Runnable() {
+						@Override
+						public void run() {
+							subscriber.onQuSettingsUpdate();
+						}
+					}).start();
+					break;
+				}
+			}
+		}
 	}
 
 	/**
