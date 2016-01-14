@@ -3,7 +3,7 @@ package QuEvent;
 import Server.Device;
 
 /**
- * An observable for listening for Device state changes.
+ * An observer for listening for Device state changes.
  * @author Nikolas Howard 
  *
  */

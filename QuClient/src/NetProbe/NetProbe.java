@@ -16,40 +16,36 @@ public class NetProbe {
 
     /**
      * Initialises the NetProbe
-     * @return
+     * @param Address of this machine on the network, if null then we will attempt to deduce it.
+     * @return success
      */
-	public boolean initialise() {
-		String localAddress = null;
-
-        // Get the local address of this machine
-		// TODO change this for the android specfic way to get ip.
-		try {
-            InetAddress ipAddr = InetAddress.getLocalHost();
-            localAddress = ipAddr.getHostAddress();
-        } catch (UnknownHostException ex) {
-            ex.printStackTrace();
-        }
-      
-		// ------------ This code can be used on android to get the ip of the device when connected to wifi-------
-		//        WifiManager wifiMgr = (WifiManager) getSystemService(WIFI_SERVICE);
-		//        WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
-		//        int ip = wifiInfo.getIpAddress();
-		//        String localAddress = Formatter.formatIpAddress(ip);
-		// -------------------------------------------------------------------------------------------------------
-
-		// Check to see if the host address is the loopback address, if so were
-		// not connected to a network.
-		if (localAddress.equals(C.LOCALHOST)) {
+	public boolean initialise(String address) {
+		// Check that we weren't given a null address, if we have then we are expected to deduce the address.
+		if(address == null) {
+			 // Get the local address of this machine
+			try {
+	            InetAddress ipAddr = InetAddress.getLocalHost();
+	            address = ipAddr.getHostAddress();
+	        } catch (UnknownHostException ex) {
+	        	// We failed to get address, return false.
+	            return false;
+	        }
+		}
+		// Check to see if the host address is the loopback address, if so we're not connected to a network.
+		if (address.equals(C.LOCALHOST)) {
 			return false;
 		}
-
 		// Strip the last byte of the local address to get subnet
-		String[] localHostAddressBytes = localAddress.split("\\.");
+		String[] localHostAddressBytes = address.split("\\.");
+		// Check that we have 4 values (valid *.*.*.* layout for IPv4)
+		if(localHostAddressBytes.length != 4) {
+			// Wrong number of byte values.
+			return false;
+		}
 		this.subnet = localHostAddressBytes[0] + "." + localHostAddressBytes[1] + "." + localHostAddressBytes[2];
-
 		// Set the local address
-		this.localAddress = localAddress;
-
+		this.localAddress = address;
+		// It seems that everything went well, return true.
 		return true;
 	}
 
@@ -61,29 +57,24 @@ public class NetProbe {
 	public ArrayList<ReachableQuDevice> getReachableQuDevices(boolean runLocally) {
         // List of all threads that have probes running on them
         ArrayList<Thread> probeThreads = new ArrayList<Thread>();
-
 		// Clear the list of available devices
         synchronized(availableDevices) {
             availableDevices.clear();
         }
-
 		// Iterate over each ip address in the subnet
 		for (int i = 1; i < 255; i++) {
 			// Construct the current address
 			String currentAddress = subnet + '.' + i;
-			
 			// Make sure were not looking at address of this machine
 			if(currentAddress.equals(localAddress)) {
 				continue;
 			}
-
             // Initialise a Probe and start on a new thread
             Probe probe = new Probe(this, currentAddress);
             Thread probeThread = new Thread(probe);
             probeThreads.add(probeThread);
             probeThread.start();
 		}
-		
 		// If the user has requested to run the client on the same machine then we include loopback
 		if(runLocally) {
 			// Initialise a Probe to search for a running server locally and start on a new thread
@@ -92,28 +83,40 @@ public class NetProbe {
             probeThreads.add(probeThread);
             probeThread.start();
 		}
-
+		// Rejoin all probe threads.
         try {
-           // Rejoin all probe threads
             for (Thread probeThread: probeThreads) {
                 probeThread.join();
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
+        // Return all of the available devices in the form of ReachableQuDevice objects.
 		return availableDevices;
 	}
 
+	/**
+	 * Called by a Probe object on finding a running QuServer instance.
+	 * @param device
+	 */
     public void addReachableDevice(ReachableQuDevice device) {
         synchronized(availableDevices) {
             availableDevices.add(device);
         }
     }
 
+    /**
+     * Get the subnet. 
+     * @return subnet
+     */
 	public String getSubnet() {
 		return subnet;
 	}
+	
+	/**
+	 * set the subnet
+	 * @param subnet
+	 */
 	public void setSubnet(String subnet) {
 		this.subnet = subnet;
 	}
