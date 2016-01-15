@@ -60,7 +60,7 @@ public class Playlist {
 			// Get the current track.	
 			Playable currentTrackToPlay = this.getCurrentTrack();
 			// Check that the current track is paused, and that the id's match.
-			if(incomingActionTrackId.equals(currentTrackToPlay.getAudioFile().getId()) 
+			if(currentTrackToPlay != null && incomingActionTrackId.equals(currentTrackToPlay.getAudioFile().getId()) 
 					&& (currentTrackToPlay.getState() == TrackState.PAUSED)) {
 				// Conditions are right, play the currently paused track.
 				currentTrackToPlay.play();
@@ -77,7 +77,7 @@ public class Playlist {
 			// Get the current track.	
 			Playable currentTrackToPause = this.getCurrentTrack();
 			// Check that the current track is playing, and that the id's match.
-			if(incomingActionTrackId.equals(currentTrackToPause.getAudioFile().getId()) 
+			if(currentTrackToPause != null && incomingActionTrackId.equals(currentTrackToPause.getAudioFile().getId()) 
 					&& (currentTrackToPause.getState() == TrackState.PLAYING)) {
 				// Conditions are right, pause the currently playing track.
 				currentTrackToPause.pause();
@@ -86,9 +86,18 @@ public class Playlist {
 			}
 			break;
 		case STOP:
-			// TODO Finish!
-			// We need to broadcast change
-			setPushPlayListPending(true);
+			// The track that the user wants to stop may no longer be at the 
+			// top of the queue, or may have stopped already, so only stop it if the 
+			// current track has an id matching to the one supplied in the IncomingAction. 
+			// Get the current track.	
+			Playable currentTrackToStop = this.getCurrentTrack();
+			// Check that the id's match.
+			if(currentTrackToStop != null && incomingActionTrackId.equals(currentTrackToStop.getAudioFile().getId())) {
+				// Conditions are right, stop the currently playing track.
+				currentTrackToStop.stop();
+				// We need to broadcast change
+				setPushPlayListPending(true);
+			}
 			break;
 		case MOVE:
 			// TODO Finish!

@@ -3,14 +3,18 @@ package UnitTests;
 import static org.junit.Assert.*;
 import org.junit.FixMethodOrder;
 import org.junit.runners.MethodSorters;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.UUID;
 import org.junit.Test;
 import Config.ClientConnectionConfig;
+import FileTransfer.FileFormat;
 import NetProbe.NetProbe;
 import NetProbe.ReachableQuDevice;
+import ProxyPlaylist.PlayList;
+import ProxyPlaylist.TrackState;
 import QuEvent.QuEventListener;
 import Server.Device;
 
@@ -183,6 +187,162 @@ public class QuClientTest {
 			// The second server name (updated name) should not be the same as the original name.
 			assertFalse("original and updated server name should not be the same", serverNamesList.get(0).equals(serverNamesList.get(1)));
 						
+			// Disconnect
+			runningQuServerDevice.disconnect();
+		} else {
+			fail("getReachableQuDevices() returned nothing or null value");
+		}
+	}
+	
+	/**
+	 * Our device PlayList.
+	 */
+	PlayList currentPlaylist = null;
+	/**
+	 * Test that we can upload a track, that it plays, that we can pause it, that we can play it again, and that we can stop it.
+	 */
+	@Test
+	public void t4_UploadAndManipulateTrack() {
+		NetProbe probe = new NetProbe();
+		ReachableQuDevice targetDevice = null;
+		// Attempt to get local Qu server instance
+		if(probe.initialise(null)) {
+			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
+			for(ReachableQuDevice device : devices) {
+				if(device.getAddress().equals("127.0.0.1")) {
+					// We will be using the local instance on Qu server for this test
+					targetDevice = device;
+					break;
+				}
+			}
+		} else {
+			fail("we failed to intialise our NetProbe");
+		}
+		// Check that we actually got a ReachableQuDevice
+		if(targetDevice != null) {
+			// Create a Client Config
+			ClientConnectionConfig config = new ClientConnectionConfig();
+			config.setClientId(UUID.randomUUID().toString()); // Generate a random id so we can connect multiple clients.
+			config.setClientName("Nik");
+			
+			// Attempt to initialise our Device object.
+			Device runningQuServerDevice = new Device();
+			
+			// Add an event listener to listen for PlayList updates.
+			runningQuServerDevice.addQuEventListener(new QuEventListener() {
+				@Override
+				public void onQuSettingsUpdate(Device sourceDevice) {
+				}
+				@Override
+				public void onQuPlayListUpdate(Device sourceDevice) {
+					// Update our reference to point to the newest PlayList.
+					currentPlaylist = sourceDevice.getPlayList();
+				}
+				@Override
+				public void onQuMasterVolumeUpdate(Device sourceDevice) {
+				}
+				@Override
+				public void quQuDisconnect(Device sourceDevice) {
+				}
+			});
+			
+			// Attempt to connect to server.
+			try {
+				runningQuServerDevice.link(targetDevice, config);
+			} catch (IOException e) {
+				fail("got IOException on attempting to link our Device object");
+			} catch (RuntimeException e1) {
+				fail("got RuntimeException on attempting to link our Device object");
+			} 
+			
+			// Get our latest PlayList.
+			currentPlaylist = runningQuServerDevice.getPlayList();
+			
+			// Nothing is uploaded, check that we have an empty PlayList.
+			assertTrue("we should not have any tracks in our playlist as nothing has been uploaded", currentPlaylist.getTracks().size() == 0);
+			
+			// Upload a track to the QuServer.
+			File audioFile = new File("TestAudiofiles/balls.mp3");
+			runningQuServerDevice.uploadAudioFile(audioFile, FileFormat.MP3, "balls_of_fire", "cool_guy", "my_album");
+			
+			// Sleep for a bit to give the server time to read the track into a file and start playing it. And for the 
+			// QuServer to notify connected clients of the PlayList state change.
+			try {
+				Thread.sleep(3500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// Our QuServer should have our track and hopefully it should be playing. Our anonymous QuEventListener should 
+			// have also picked up a QuEvent that was fired after the QuServer notified the client with details of the change
+			// and the newest state of the PlayList. First, check that the PlayList was updated and that there is a Track.
+			assertTrue("we should have the one track we uploaded in our PlayList", currentPlaylist.getTracks().size() == 1);
+			// Check that the TrackState of this file is PLAYING.
+			assertTrue("the TrackState of this track should be PLAYING", currentPlaylist.getTracks().get(0).getTrackState() == TrackState.PLAYING);
+			
+			// Allow the track to play for a couple of seconds.
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// Pause our track.
+			currentPlaylist.getTracks().get(0).pause();
+			
+			// Allow time for this to be processed.
+			try {
+				Thread.sleep(1500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+						
+			// We hopefully received acknowledgements from the QuServer in the form of a PUSH_PLAYLIST IncomingAction. 
+			// And our local PlayList should have been updated by our QuEventListener. Check we have a track with a PAUSED state.
+			assertTrue("the TrackState of this track should be PAUSED", currentPlaylist.getTracks().get(0).getTrackState() == TrackState.PAUSED);
+			
+			// Allow the track to stay paused for a couple of seconds.
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// Play our track again.
+			currentPlaylist.getTracks().get(0).play();
+			
+			// Allow time for this to be processed.
+			try {
+				Thread.sleep(1500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// We hopefully received acknowledgements from the QuServer in the form of a PUSH_PLAYLIST IncomingAction. 
+			// And our local PlayList should have been updated by our QuEventListener. Check we have a track with a PLAYING state.
+			assertTrue("the TrackState of this track should be PLAYING as we unpaused it", currentPlaylist.getTracks().get(0).getTrackState() == TrackState.PLAYING);
+			
+			// Allow time for this to play before we stop it.
+			try {
+				Thread.sleep(2500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// Play our track again.
+			currentPlaylist.getTracks().get(0).stop();
+			
+			// Allow time for this to be processed.
+			try {
+				Thread.sleep(1500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// The only song in the PlayList should have been stopped, and the client should have been updated.
+			// Check that our most recent PlayList is completely empty.
+			assertTrue("we stopped our only track, and therefore we should have no tracks in our PlayList", currentPlaylist.getTracks().size() == 0);
+			
 			// Disconnect
 			runningQuServerDevice.disconnect();
 		} else {

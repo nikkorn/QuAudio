@@ -218,6 +218,18 @@ public class Device {
 	}
 	
 	/**
+	 * Get the client configuration.
+	 * @return client configuration
+	 */
+	public ClientConnectionConfig getClientConfiguration() {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
+		return this.clientConfig;
+	}
+	
+	/**
 	 * Returns true if the client that initalised the Device object instance is an admin at the time.
 	 * This value can be updated by the server during the lifetime of a Device instance.
 	 * @return is admin (super) user.

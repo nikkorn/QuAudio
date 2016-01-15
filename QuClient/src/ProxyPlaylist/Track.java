@@ -23,36 +23,66 @@ public class Track {
 		this.device = parentDevice;
 	}
 	
+	/**
+	 * Play this track as long as the current client has the right permissions and the track is currently paused.
+	 */
 	public void play() {
-		// TODO Check that we have permission to do this! 
-		// (is this track ours? Is This Track in PAUSED state? are we super user?)
-		if(trackState == TrackState.PAUSED) {
-			// Create a new PLAY OutgoingAction
-			JSONObject jsoPlay = new JSONObject();
-			jsoPlay.put("track_id", trackId);
-			// Queue this OutgoingAction
-			device.sendAction(new OutgoingAction(OutgoingActionType.PLAY, jsoPlay));
+		// Check that we have permission to do this! (is this track ours? are we super user?)
+		if(canInteract()) {
+			// Is This Track in PAUSED state?
+			if(trackState == TrackState.PAUSED) {
+				// Create a new PLAY OutgoingAction
+				JSONObject jsoPlay = new JSONObject();
+				jsoPlay.put("track_id", trackId);
+				// Queue this OutgoingAction
+				device.sendAction(new OutgoingAction(OutgoingActionType.PLAY, jsoPlay));
+			}
+		} else {
+			throw new RuntimeException("cannot manipulate this track, user is neither track owner nor super user");
 		}
 	}
 	
+	/**
+	 * Pause this track as long as the current client has the right permissions and the track is currently playing.
+	 */
 	public void pause() {
-		// TODO Check that we have permission to do this! 
-		// (is this track ours? Is This Track in PLAYING state? are we super user?)
-		if(trackState == TrackState.PLAYING) {
-			// Create a new PAUSE OutgoingAction
-			JSONObject jsoPause = new JSONObject();
-			jsoPause.put("track_id", trackId);
-			// Queue this OutgoingAction
-			device.sendAction(new OutgoingAction(OutgoingActionType.PAUSE, jsoPause));
+		// Check that we have permission to do this! (is this track ours? are we super user?)
+		if(canInteract()) {
+			// Is This Track in PLAYING state?
+			if(trackState == TrackState.PLAYING) {
+				// Create a new PAUSE OutgoingAction
+				JSONObject jsoPause = new JSONObject();
+				jsoPause.put("track_id", trackId);
+				// Queue this OutgoingAction
+				device.sendAction(new OutgoingAction(OutgoingActionType.PAUSE, jsoPause));
+			}
+		} else {
+			throw new RuntimeException("cannot manipulate this track, user is neither track owner nor super user");
 		}
 	}
 	
+	/**
+	 * Stop this track as long as the current client has the right permissions.
+	 */
 	public void stop() {
-		// TODO do it!
+		// Check that we have permission to do this! (is this track ours? are we super user?)
+		if(canInteract()) {
+			// Create a new STOP OutgoingAction
+			JSONObject jsoStop = new JSONObject();
+			jsoStop.put("track_id", trackId);
+			// Queue this OutgoingAction
+			device.sendAction(new OutgoingAction(OutgoingActionType.STOP, jsoStop));
+		} else {
+			throw new RuntimeException("cannot manipulate this track, user is neither track owner nor super user");
+		}
 	}
 	
-	public void move() {
-		// TODO do it!
+	/**
+	 * Returns true if the current client has permission to interact (play,pause,stop .etc) with this track.
+	 * @return Has permission
+	 */
+	public boolean canInteract() {
+		return device.getClientConfiguration().getClientId().equals(this.ownerId) || device.adminModeEnabled();
 	}
 	
 	public String getTrackId() {
