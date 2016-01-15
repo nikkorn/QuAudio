@@ -27,6 +27,15 @@ public class Device {
 	private ClientConnectionConfig clientConfig;
 	private ActionChannel actionChannel;
 	
+	// Has this instance been fully initialised?
+	private volatile boolean initilised = false;
+	
+	// Variables that relate to waiting for our welcome package?
+	private Object welcomePackageCheckLock = new Object();
+	private final int DEVICE_LINK_WELCOMEPACKAGE_TIMEOUT = 2000;
+	private volatile boolean receivedPlayListUpdate = false;
+	private volatile boolean receivedVolumeUpdate = false;
+	
 	// Variables that are initially set by the input ReachableQuDevice, but can change during the lifetime of a Device object.
 	private Object settingsUpdateLock = new Object();
 	private volatile boolean areSettingsDirty = false;
@@ -45,13 +54,16 @@ public class Device {
 	private PlayList lastPlayList = null;
 	
 	/**
-	 * Constructor
+	 * Fully initialises this instance of Device by actually attempting to connect to the QuServer, populating 
+	 * vital information with the use of a welcome package (the first send of vital system info IncomingActions)
+	 * and then marking the instance as fully initialised (which is required in order for the user to be able to 
+	 * invoke pretty much every method of this class except those relating to QuEventListener subscriptions). 
 	 * @param reachableDevice
 	 * @param clientConfig
 	 * @throws IOException
 	 * @throws RuntimeException
 	 */
-	public Device(ReachableQuDevice reachableDevice, ClientConnectionConfig clientConfig) throws IOException, RuntimeException {
+	public void link(ReachableQuDevice reachableDevice, ClientConnectionConfig clientConfig) throws IOException, RuntimeException {
 		this.reachableDevice = reachableDevice;
 		this.deviceName = reachableDevice.getDeviceName();
 		this.isProtected = reachableDevice.isProtected();
@@ -85,6 +97,31 @@ public class Device {
 		});
 		deviceThread.setDaemon(true);
 		deviceThread.start();
+		
+		// Don't return until we get our welcome package or we timeout.
+		long welcomePackageWaitStart = System.currentTimeMillis();
+		while(true) {
+			// Wait for a bit, no need to blitz this thread.
+			try {
+				Thread.sleep(5);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			// Have we exceeded the timeout for waiting for a welcome package?
+			if((System.currentTimeMillis() - welcomePackageWaitStart) > this.DEVICE_LINK_WELCOMEPACKAGE_TIMEOUT) {
+				throw new RuntimeException("exceeded timeout waiting for welcome package from server");
+			}
+			// Have we received our welcome package yet?
+			synchronized(welcomePackageCheckLock) {
+				// Check that we have all the initial updates we need in order for the user to start interacting with this object.
+				if(receivedPlayListUpdate && receivedVolumeUpdate) {
+					break;
+				}
+			}
+		}
+		
+		// We can now regard this object as being fully initialised.
+		this.initilised = true;
 	}
 	
 	/**
@@ -92,6 +129,10 @@ public class Device {
 	 * @return id
 	 */
 	public String getDeviceId() {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
 		return reachableDevice.getDeviceId();
 	}
 
@@ -100,6 +141,10 @@ public class Device {
 	 * @return address
 	 */
 	public String getAddress() {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
 		return reachableDevice.getAddress();
 	}
 
@@ -108,6 +153,10 @@ public class Device {
 	 * @return listening port
 	 */
 	public int getAudioFileReceiverPort() {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
 		return reachableDevice.getAudioFileReceiverPort();
 	}
 
@@ -116,6 +165,10 @@ public class Device {
 	 * @return listening port
 	 */
 	public int getClientManagerPort() {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
 		return reachableDevice.getClientManagerPort();
 	}
 	
@@ -125,6 +178,10 @@ public class Device {
 	 * @return isProtected
 	 */
 	public boolean isProtected() {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
 		synchronized(settingsUpdateLock) {
 			return this.isProtected;
 		}
@@ -136,6 +193,10 @@ public class Device {
 	 * @return quserver name
 	 */
 	public String getDeviceName() {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
 		synchronized(settingsUpdateLock) {
 			return this.deviceName;
 		}
@@ -147,6 +208,10 @@ public class Device {
 	 * @return volume level (range 0 - 100)
 	 */
 	public int getDeviceVolume() {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
 		synchronized(settingsUpdateLock) {
 			return this.volumeLevel;
 		}
@@ -158,6 +223,10 @@ public class Device {
 	 * @return is admin (super) user.
 	 */
 	public boolean adminModeEnabled() {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
 		synchronized(settingsUpdateLock) {
 			for(String superClientId : superUsers) {
 				if(superClientId.equals(clientConfig.getClientId())) {
@@ -173,6 +242,10 @@ public class Device {
 	 * @return latest playlist
 	 */
 	public PlayList getPlayList() {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
 		// Construct a new ordered list to store tracks
 		LinkedList<Track> constructedPlayListTracks = new LinkedList<Track>();
 		// Populate our list of tracks
@@ -206,6 +279,10 @@ public class Device {
 	 * @param album
 	 */
 	public void uploadAudioFile(File audioFile, FileFormat format, String name, String artist, String album) {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
 		AudioFileSender audioFileSender = new AudioFileSender(reachableDevice.getAddress(), reachableDevice.getAudioFileReceiverPort());
 		try {
 			audioFileSender.upload(audioFile, clientConfig.getClientId(), format.toString(), name, artist, album);
@@ -223,6 +300,10 @@ public class Device {
 	 * @param outgoingAction
 	 */
 	public void sendAction(OutgoingAction outgoingAction) {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
 		// TODO check to see if this user has permissions for the action they want to send
 		if(actionChannel.isConnected()) {
 			actionChannel.sendOutgoingActionToServer(outgoingAction);
@@ -230,6 +311,23 @@ public class Device {
 			// We are no longer connected to the server
 			throw new RuntimeException("not connected to Qu server");
 		}
+	}
+	
+	/**
+	 * Sends an update of QuServer settings to the server.
+	 * @param serverName
+	 * @param accessPassword
+	 */
+	public void updateQuServerSettings(String serverName, String accessPassword) {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
+		JSONObject updateSettingsJSON = new JSONObject();
+		updateSettingsJSON.put("device_name", serverName);
+		updateSettingsJSON.put("access_password", accessPassword);
+		OutgoingAction settingsUpdateAction = new OutgoingAction(OutgoingActionType.UPDATE_SETTINGS, updateSettingsJSON);
+		sendAction(settingsUpdateAction);
 	}
 	
 	/**
@@ -295,6 +393,10 @@ public class Device {
 		if(this.lastPlayList != null) {
 			lastPlayList.setDirty(true);
 		}
+		// This update may be part of our welcome package, set receivedPlayListUpdate just in case it is
+		synchronized(welcomePackageCheckLock) {
+			receivedPlayListUpdate = true;
+		}
 	}
 
 	/**
@@ -305,6 +407,10 @@ public class Device {
 		synchronized(settingsUpdateLock) {
 			this.volumeLevel = volumeUpdateAction.getActionInfoObject().getInt("volume_level");
 			this.areSettingsDirty = true;
+		}
+		// This update may be part of our welcome package, set receivedVolumeUpdate just in case it is
+		synchronized(welcomePackageCheckLock) {
+			receivedVolumeUpdate = true;
 		}
 	}
 
@@ -331,6 +437,10 @@ public class Device {
 	 * @return hasDirtySettings
 	 */
 	public boolean hasDirtySettings() {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
 		boolean dirty = false;
 		synchronized(settingsUpdateLock) {
         	dirty = this.areSettingsDirty;
@@ -371,7 +481,12 @@ public class Device {
 	 * Notify any subscribing QuEventListeners of a QuEvent that was picked up when processing IncomingActions.
 	 * @param The type of event
 	 */
-	public void notifyQuEventListeners(QuEventType eventType) {
+	private void notifyQuEventListeners(QuEventType eventType) {
+		// We will not raise any QuEvents until this object is fully initialised as users will most likely attempt
+		// to interact with the Device instance on receiving the event, which wont be great if were not fully initialised.
+		if(!this.initilised) {
+			return;
+		}
 		// We need a reference to this Device instance.
 		Device sourceDevice = this;
 		synchronized(subscribingQuEventListeners) {
@@ -405,6 +520,10 @@ public class Device {
 	 * @return isConnected
 	 */
 	public boolean isConnected() {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
 		return this.actionChannel.isConnected();
 	}
 
@@ -412,6 +531,10 @@ public class Device {
 	 * Disconnect from the server.
 	 */
 	public void disconnect() {
+		// The user must have fully initialised this object.
+		if(!initilised) {
+			throw new RuntimeException("Device is not fully initialised, call link()"); 
+		}
 		// Disconnect the ActionChannel from the server. 
 		this.actionChannel.disconnect();
 	}
