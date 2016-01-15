@@ -380,40 +380,20 @@ public class Device {
 				// The type of handling method we call depends on the event type.
 				switch(eventType) {
 				case DISCONNECTION:
-					// Call the appropriate event handler on a new thread.
-					new Thread(new Runnable() {
-						@Override
-						public void run() {
-							subscriber.quQuDisconnect(sourceDevice);
-						}
-					}).start();
+					// Call the appropriate event handler.
+					subscriber.quQuDisconnect(sourceDevice);
 					break;
 				case PLAYLIST_UPDATED:
-					// Call the appropriate event handler on a new thread.
-					new Thread(new Runnable() {
-						@Override
-						public void run() {
-							subscriber.onQuPlayListUpdate(sourceDevice);
-						}
-					}).start();
+					// Call the appropriate event handler.
+					subscriber.onQuPlayListUpdate(sourceDevice);
 					break;
 				case SETTINGS_UPDATED:
-					// Call the appropriate event handler on a new thread.
-					new Thread(new Runnable() {
-						@Override
-						public void run() {
-							subscriber.onQuSettingsUpdate(sourceDevice);
-						}
-					}).start();
+					// Call the appropriate event handler.
+					subscriber.onQuSettingsUpdate(sourceDevice);
 					break;
 				case VOLUME_UPDATED:
-					// Call the appropriate event handler on a new thread.
-					new Thread(new Runnable() {
-						@Override
-						public void run() {
-							subscriber.onQuMasterVolumeUpdate(sourceDevice);
-						}
-					}).start();
+					// Call the appropriate event handler.
+					subscriber.onQuMasterVolumeUpdate(sourceDevice);
 					break;
 				}
 			}

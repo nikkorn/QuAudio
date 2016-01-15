@@ -86,13 +86,5 @@ public class QuClientTest {
 		} else {
 			fail("getReachableQuDevices() returned nothing or null value");
 		}
-	}
-
-	
-	
-	
-	
-	
-	
-	
+	}	
 }
