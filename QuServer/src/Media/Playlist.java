@@ -99,6 +99,40 @@ public class Playlist {
 				setPushPlayListPending(true);
 			}
 			break;
+		case REMOVE:
+			// The track that the user wants to remove may no longer be in the
+			// PlayList. Check that it is still here first, if so and it is the current track then just stop it.
+			// If it is not the current track then just remove it.
+			Playable currentTrack = this.getCurrentTrack();
+			// Is the track that we want to remove the current track?
+			if(incomingActionTrackId.equals(currentTrack.getAudioFile().getId())) {
+				// Stop the current track, this will in turn remove it.
+				currentTrack.stop();
+				// We need to broadcast change
+				setPushPlayListPending(true);
+			} else {
+				// We are looking to see if the track we want to remove is elsewhere in the PlayList.
+				int unwantedTrackIndex = -1;
+				// Go through our PlayList looking for a match.
+				for(int i = 0; i < tracks.size(); i++) {
+					// Is this our track?
+					if(incomingActionTrackId.equals(tracks.get(i).getAudioFile().getId())) {
+						unwantedTrackIndex = i;
+						break;
+					}
+				}
+				// Did we find our track? If so then remove it.
+				if(unwantedTrackIndex != -1) {
+					// Get the track name.
+					String trackName = tracks.get(unwantedTrackIndex).getAudioFile().getName();
+					// Remove the track.
+					tracks.remove(unwantedTrackIndex);
+					Log.log(Log.MessageType.INFO, "PLAYLIST", "removed track '" + trackName + "'");
+					// We need to broadcast change
+					setPushPlayListPending(true);
+				}
+			}
+			break;
 		case MOVE:
 			// TODO Finish!
 			// We need to broadcast change

@@ -6,6 +6,7 @@ public enum OutgoingActionType {
 	STOP,
 	SKIP,
 	MOVE,
+	REMOVE,
 	UPDATE_VOLUME,
 	UPDATE_SETTINGS,
 	ADMIN_REQUEST,

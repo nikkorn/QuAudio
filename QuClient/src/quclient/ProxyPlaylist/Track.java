@@ -78,6 +78,22 @@ public class Track {
 	}
 	
 	/**
+	 * Remove this track from the PlayList as long as the current client has the right permissions.
+	 */
+	public void remove() {
+		// Check that we have permission to do this! (is this track ours? are we super user?)
+		if(canInteract()) {
+			// Create a new REMOVE OutgoingAction
+			JSONObject jsoRemove = new JSONObject();
+			jsoRemove.put("track_id", trackId);
+			// Queue this OutgoingAction
+			device.sendAction(new OutgoingAction(OutgoingActionType.REMOVE, jsoRemove));
+		} else {
+			throw new RuntimeException("cannot manipulate this track, user is neither track owner nor super user");
+		}
+	}
+	
+	/**
 	 * Returns true if the current client has permission to interact (play,pause,stop .etc) with this track.
 	 * @return Has permission
 	 */

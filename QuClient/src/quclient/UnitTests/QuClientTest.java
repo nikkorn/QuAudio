@@ -349,4 +349,313 @@ public class QuClientTest {
 			fail("getReachableQuDevices() returned nothing or null value");
 		}
 	}
+	
+	/**
+	 * Test that we can upload two tracks, and that when we stop the first the second will begin to play automatically.
+	 */
+	@Test
+	public void t5_UploadStopAndSkip() {
+		NetProbe probe = new NetProbe();
+		ReachableQuDevice targetDevice = null;
+		// Attempt to get local Qu server instance
+		if(probe.initialise(null)) {
+			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
+			for(ReachableQuDevice device : devices) {
+				if(device.getAddress().equals("127.0.0.1")) {
+					// We will be using the local instance on Qu server for this test
+					targetDevice = device;
+					break;
+				}
+			}
+		} else {
+			fail("we failed to intialise our NetProbe");
+		}
+		// Check that we actually got a ReachableQuDevice
+		if(targetDevice != null) {
+			// Create a Client Config
+			ClientConnectionConfig config = new ClientConnectionConfig();
+			config.setClientId(UUID.randomUUID().toString()); // Generate a random id so we can connect multiple clients.
+			config.setClientName("Nik");
+			
+			// Attempt to initialise our Device object.
+			Device runningQuServerDevice = new Device();
+			
+			// Add an event listener to listen for PlayList updates.
+			runningQuServerDevice.addQuEventListener(new QuEventListener() {
+				@Override
+				public void onQuSettingsUpdate(Device sourceDevice) {
+				}
+				@Override
+				public void onQuPlayListUpdate(Device sourceDevice) {
+					// Update our reference to point to the newest PlayList.
+					currentPlaylist = sourceDevice.getPlayList();
+				}
+				@Override
+				public void onQuMasterVolumeUpdate(Device sourceDevice) {
+				}
+				@Override
+				public void quQuDisconnect(Device sourceDevice) {
+				}
+			});
+			
+			// Attempt to connect to server.
+			try {
+				runningQuServerDevice.link(targetDevice, config);
+			} catch (IOException e) {
+				fail("got IOException on attempting to link our Device object");
+			} catch (RuntimeException e1) {
+				fail("got RuntimeException on attempting to link our Device object");
+			} 
+			
+			// Get our latest PlayList.
+			currentPlaylist = runningQuServerDevice.getPlayList();
+			
+			// Nothing is uploaded, check that we have an empty PlayList.
+			assertTrue("we should not have any tracks in our playlist as nothing has been uploaded", currentPlaylist.getTracks().size() == 0);
+			
+			// Upload a track to the QuServer.
+			File audioFile = new File("TestAudiofiles/balls.mp3");
+			runningQuServerDevice.uploadAudioFile(audioFile, FileFormat.MP3, "balls_of_fire", "cool_guy", "my_album");
+			
+			File audioFile2 = new File("TestAudiofiles/classical.mp3");
+			runningQuServerDevice.uploadAudioFile(audioFile2, FileFormat.MP3, "classical", "old_guy", "classical_album");
+			
+			// Sleep for a bit to give the server time to read the track into a file and start playing it. And for the 
+			// QuServer to notify connected clients of the PlayList state change.
+			try {
+				Thread.sleep(3500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// We should have two tracks in our playlist.
+			assertTrue("we should have two tracks uploaded in our PlayList", currentPlaylist.getTracks().size() == 2);
+			// Check that the TrackState of the first file is PLAYING.
+			assertTrue("the TrackState of the first track should be PLAYING", currentPlaylist.getTracks().get(0).getTrackState() == TrackState.PLAYING);
+			// Check that the TrackState of the second file is PENDING.
+			assertTrue("the TrackState of the second track should be PENDING", currentPlaylist.getTracks().get(1).getTrackState() == TrackState.PENDING);
+			
+			
+			// Allow the track to play for a couple of seconds.
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// Stop our first track our track.
+			currentPlaylist.getTracks().get(0).stop();
+			
+			// Allow time for this to be processed.
+			try {
+				Thread.sleep(1500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+						
+			// We should now have only one track in our playlist as the first was stopped.
+			assertTrue("We should now have only one track in our playlist as the first was stopped", currentPlaylist.getTracks().size() == 1);
+			// Check that the TrackState of the first file is PLAYING.
+			assertTrue("the TrackState of the first track should be PLAYING", currentPlaylist.getTracks().get(0).getTrackState() == TrackState.PLAYING);
+		
+			
+			// Allow the second track to play for a few of seconds
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// stop this track too.
+			currentPlaylist.getTracks().get(0).stop();
+			
+			// Allow time for this to be processed.
+			try {
+				Thread.sleep(1500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// We should now have only one track in our playlist as the first was stopped.
+			assertTrue("We should now have no tracks in the PlayList", currentPlaylist.getTracks().size() == 0);
+			
+			// Allow time before disconnecting
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// Disconnect
+			runningQuServerDevice.disconnect();
+		} else {
+			fail("getReachableQuDevices() returned nothing or null value");
+		}
+	}
+	
+	/**
+	 * Test that we can upload three tracks, and that when we remove the second track we are left with the other two in order.
+	 * We will then attempt to remove the currently playing track.
+	 */
+	@Test
+	public void t6_UploadAndRemove() {
+		NetProbe probe = new NetProbe();
+		ReachableQuDevice targetDevice = null;
+		// Attempt to get local Qu server instance
+		if(probe.initialise(null)) {
+			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
+			for(ReachableQuDevice device : devices) {
+				if(device.getAddress().equals("127.0.0.1")) {
+					// We will be using the local instance on Qu server for this test
+					targetDevice = device;
+					break;
+				}
+			}
+		} else {
+			fail("we failed to intialise our NetProbe");
+		}
+		// Check that we actually got a ReachableQuDevice
+		if(targetDevice != null) {
+			// Create a Client Config
+			ClientConnectionConfig config = new ClientConnectionConfig();
+			config.setClientId(UUID.randomUUID().toString()); // Generate a random id so we can connect multiple clients.
+			config.setClientName("Nik");
+			
+			// Attempt to initialise our Device object.
+			Device runningQuServerDevice = new Device();
+			
+			// Add an event listener to listen for PlayList updates.
+			runningQuServerDevice.addQuEventListener(new QuEventListener() {
+				@Override
+				public void onQuSettingsUpdate(Device sourceDevice) {
+				}
+				@Override
+				public void onQuPlayListUpdate(Device sourceDevice) {
+					// Update our reference to point to the newest PlayList.
+					currentPlaylist = sourceDevice.getPlayList();
+				}
+				@Override
+				public void onQuMasterVolumeUpdate(Device sourceDevice) {
+				}
+				@Override
+				public void quQuDisconnect(Device sourceDevice) {
+				}
+			});
+			
+			// Attempt to connect to server.
+			try {
+				runningQuServerDevice.link(targetDevice, config);
+			} catch (IOException e) {
+				fail("got IOException on attempting to link our Device object");
+			} catch (RuntimeException e1) {
+				fail("got RuntimeException on attempting to link our Device object");
+			} 
+			
+			// Get our latest PlayList.
+			currentPlaylist = runningQuServerDevice.getPlayList();
+			
+			// Nothing is uploaded, check that we have an empty PlayList.
+			assertTrue("we should not have any tracks in our playlist as nothing has been uploaded", currentPlaylist.getTracks().size() == 0);
+			
+			// Upload a track to the QuServer.
+			File audioFile = new File("TestAudioFiles/balls.mp3");
+			runningQuServerDevice.uploadAudioFile(audioFile, FileFormat.MP3, "balls_of_fire", "cool_guy", "my_album");
+			
+			// Sleep for a bit, we want these tracks to be uploaded in order.
+			try {
+				Thread.sleep(600);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// Upload a second track (the one we will remove first).
+			File audioFile2 = new File("TestAudioFiles/classical.mp3");
+			runningQuServerDevice.uploadAudioFile(audioFile2, FileFormat.MP3, "classical", "old_guy", "classical_album");
+			
+			// Sleep for a bit, we want these tracks to be uploaded in order.
+			try {
+				Thread.sleep(600);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// Upload a third track.
+			File audioFile3 = new File("TestAudioFiles/balls.mp3");
+			runningQuServerDevice.uploadAudioFile(audioFile3, FileFormat.MP3, "balls_of_fire_2", "cool_guy", "my_album");
+			
+			// Sleep for a bit to give the server time to read the track into a file and start playing it. And for the 
+			// QuServer to notify connected clients of the PlayList state change.
+			try {
+				Thread.sleep(3500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// We should have three tracks in our playlist.
+			assertTrue("we should have three tracks uploaded in our PlayList", currentPlaylist.getTracks().size() == 3);
+			// Check that the TrackState of the first file is PLAYING.
+			assertTrue("the TrackState of the first track should be PLAYING", currentPlaylist.getTracks().get(0).getTrackState() == TrackState.PLAYING);
+			
+			// Allow the track to play for a couple of seconds.
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// Remove our second track.
+			currentPlaylist.getTracks().get(1).remove();
+			
+			// Allow time for this to be processed.
+			try {
+				Thread.sleep(1500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+						
+			// We should now have two tracks in our PlayList.
+			assertTrue("We should now only have two tracks in our PlayList", currentPlaylist.getTracks().size() == 2);
+			// Check that the TrackState of the first file is PLAYING.
+			assertTrue("the TrackState of the first track should still be PLAYING", currentPlaylist.getTracks().get(0).getTrackState() == TrackState.PLAYING);
+			// Check that the first track in the PlayList is the first track we uploaded.
+			assertTrue("The first track in the PlayList should be the first track we uploaded", currentPlaylist.getTracks().get(0).getName().equals("balls_of_fire"));
+			// Check that the second track in the PlayList is the third track we uploaded.
+			assertTrue("The second track in the PlayList should be the third track we uploaded", currentPlaylist.getTracks().get(1).getName().equals("balls_of_fire_2"));
+		
+			// Allow the second track to play for a few of seconds
+			try {
+				Thread.sleep(3000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// Remove the currently playing track.
+			currentPlaylist.getTracks().get(0).remove();
+			
+			// Allow time for this to be processed.
+			try {
+				Thread.sleep(1500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// We should now have only one track in our playlist as the first was stopped.
+			assertTrue("We should now have only one track in the PlayList", currentPlaylist.getTracks().size() == 1);
+			
+			// Remove the current (and last) playing track.
+			currentPlaylist.getTracks().get(0).remove();
+			
+			// Wait a bit before we disconnect.
+			try {
+				Thread.sleep(1500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			// Disconnect
+			runningQuServerDevice.disconnect();
+		} else {
+			fail("getReachableQuDevices() returned nothing or null value");
+		}
+	}
 }

@@ -157,6 +157,7 @@ public class Server {
 			case MOVE:	// A client has requested that we promote/demote a track in the playlist queue
 			case SKIP:	// A client has requested that we move to a different position in the currently playing track
 			case STOP:	// A client has requested that we stop the currently playing/paused track and move on to the next (if there is one)
+			case REMOVE:// A client has requested that we remove a track
 				// It is the responsibility of the PlayList to process this IncomingAction.
 				playlist.processAction(action);
 				break;
