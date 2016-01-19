@@ -70,6 +70,7 @@ public class QuClientTest {
 			ClientConnectionConfig config = new ClientConnectionConfig();
 			config.setClientId(UUID.randomUUID().toString()); // Generate a random id so we can connect multiple clients.
 			config.setClientName("Nik");
+			config.setAccessPassword("a1a1");
 			
 			// Attempt to initialise our Device object.
 			Device runningQuServerDevice = new Device();
@@ -119,8 +120,9 @@ public class QuClientTest {
 		if(targetDevice != null) {
 			// Create a Client Config
 			ClientConnectionConfig config = new ClientConnectionConfig();
-			config.setClientId(UUID.randomUUID().toString()); // Generate a random id so we can connect multiple clients.
+			config.setClientId("test_super_client_id"); // We need to use a client id that the server recognises as the id of a super user (needed for settings update)
 			config.setClientName("Nik");
+			config.setAccessPassword("a1a1");
 			
 			// The name that we will be temporarily changing the server to for the test.
 			String newServerName = "New-Server-Name";
@@ -161,7 +163,7 @@ public class QuClientTest {
 			serverNamesList.add(originalServerName);
 			
 			// Change the server name, leaving access password blank.
-			runningQuServerDevice.updateQuServerSettings(newServerName, "");
+			runningQuServerDevice.updateQuServerSettings(newServerName, null, null);
 			
 			// Sleep for a bit to give the server time to process the settings update, send it back, and our listener get the event.
 			try {
@@ -171,7 +173,7 @@ public class QuClientTest {
 			}
 			
 			// That should be long enough, change the server name back now, still leaving access password blank.
-			runningQuServerDevice.updateQuServerSettings(originalServerName, "");
+			runningQuServerDevice.updateQuServerSettings(originalServerName, null, null);
 			
 			// Sleep for a bit to give the server time to process the settings update, send it back, and our listener get the event.
 			try {
@@ -224,6 +226,7 @@ public class QuClientTest {
 			ClientConnectionConfig config = new ClientConnectionConfig();
 			config.setClientId(UUID.randomUUID().toString()); // Generate a random id so we can connect multiple clients.
 			config.setClientName("Nik");
+			config.setAccessPassword("a1a1");
 			
 			// Attempt to initialise our Device object.
 			Device runningQuServerDevice = new Device();
@@ -376,6 +379,7 @@ public class QuClientTest {
 			ClientConnectionConfig config = new ClientConnectionConfig();
 			config.setClientId(UUID.randomUUID().toString()); // Generate a random id so we can connect multiple clients.
 			config.setClientName("Nik");
+			config.setAccessPassword("a1a1");
 			
 			// Attempt to initialise our Device object.
 			Device runningQuServerDevice = new Device();
@@ -520,6 +524,7 @@ public class QuClientTest {
 			ClientConnectionConfig config = new ClientConnectionConfig();
 			config.setClientId(UUID.randomUUID().toString()); // Generate a random id so we can connect multiple clients.
 			config.setClientName("Nik");
+			config.setAccessPassword("a1a1");
 			
 			// Attempt to initialise our Device object.
 			Device runningQuServerDevice = new Device();

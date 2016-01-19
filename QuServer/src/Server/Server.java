@@ -183,8 +183,20 @@ public class Server {
 				
 			// A super client has supplied updated system settings
 			case UPDATE_SETTINGS:
+				// Updating the server settings is serious business, double check that this user is super.
+				if(!properties.isSuperUser(action.getActionInfoObject().getString("client_id"))) {
+					Log.log(Log.MessageType.WARNING, "SERVER", "we received an UPDATE_SETTINGS IncomingAction from a non-super user! Ignoring it.");
+					break;
+				}
 				properties.setDeviceName(action.getActionInfoObject().getString("device_name"));
-				properties.setAccessPassword(action.getActionInfoObject().getString("access_password"));
+				// Only set the access password if it is not '?' ('?' is sent by the client if they do not want to alter this value)
+				if(!action.getActionInfoObject().getString("access_password").equals("?")) {
+					properties.setAccessPassword(action.getActionInfoObject().getString("access_password"));
+				}
+				// Only set the super password if it is not '?' ('?' is sent by the client if they do not want to alter this value)
+				if(!action.getActionInfoObject().getString("super_password").equals("?")) {
+					properties.setSuperPassword(action.getActionInfoObject().getString("super_password"));
+				}
 				Log.log(Log.MessageType.INFO, "SERVER", "settings updated");
 				// Broadcast a PUSH_SETTINGS action to all clients notifying them of the settings changing
 				JSONObject settingsJSON = new JSONObject();

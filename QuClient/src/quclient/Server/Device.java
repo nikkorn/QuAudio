@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import quclient.Config.ClientConnectionConfig;
+import quclient.Config.PasswordUtils;
 import quclient.FileTransfer.AudioFileSender;
 import quclient.FileTransfer.FileFormat;
 import quclient.NetProbe.ReachableQuDevice;
@@ -330,14 +331,41 @@ public class Device {
 	 * @param serverName
 	 * @param accessPassword
 	 */
-	public void updateQuServerSettings(String serverName, String accessPassword) {
+	public void updateQuServerSettings(String serverName, String accessPassword, String superPassword) {
 		// The user must have fully initialised this object.
 		if(!initilised) {
 			throw new RuntimeException("Device is not fully initialised, call link()"); 
 		}
+		// Make sure the client is a super user.
+		if(!adminModeEnabled()) {
+			throw new RuntimeException("must be a super user to update server settings");
+		}
 		JSONObject updateSettingsJSON = new JSONObject();
 		updateSettingsJSON.put("device_name", serverName);
-		updateSettingsJSON.put("access_password", accessPassword);
+		// Include the client id so we can double-check that this user is super server-side.
+		updateSettingsJSON.put("client_id", this.clientConfig.getClientId());
+		// If accessPassword is null then we are assuming the user does not want to change it.
+		if(accessPassword == null) {
+			updateSettingsJSON.put("access_password", "?"); // Server will pick up '?' as meaning 'don't update'
+		} else {
+			// The user wants to update the access password, make sure that it is a valid password. or an empty string will clear the access password.
+			if(PasswordUtils.isValidPassword(accessPassword) || accessPassword.equals("")) {
+				updateSettingsJSON.put("access_password", accessPassword);
+			} else {
+				throw new RuntimeException("'" + accessPassword + "' is not a valid access password, must consist of four characters, either digits or letters"); 
+			}
+		}
+		// If superPassword is null then we are assuming the user does not want to change it.
+		if(superPassword == null) {
+			updateSettingsJSON.put("super_password", "?"); // Server will pick up '?' as meaning 'don't update'
+		} else {
+			// The user wants to update the super password, make sure that it is a valid password.
+			if(PasswordUtils.isValidPassword(superPassword)) {
+				updateSettingsJSON.put("super_password", superPassword);
+			} else {
+				throw new RuntimeException("'" + superPassword + "' is not a valid super password, must consist of four characters, either digits or letters"); 
+			}
+		}
 		OutgoingAction settingsUpdateAction = new OutgoingAction(OutgoingActionType.UPDATE_SETTINGS, updateSettingsJSON);
 		sendAction(settingsUpdateAction);
 	}
