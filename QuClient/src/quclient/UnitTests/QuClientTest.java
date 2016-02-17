@@ -265,7 +265,7 @@ public class QuClientTest {
 			assertTrue("we should not have any tracks in our playlist as nothing has been uploaded", currentPlaylist.getTracks().size() == 0);
 			
 			// Upload a track to the QuServer.
-			File audioFile = new File("TestAudiofiles/balls.mp3");
+			File audioFile = new File("TestAudioFiles/balls.mp3");
 			runningQuServerDevice.uploadAudioFile(audioFile, FileFormat.MP3, "balls_of_fire", "cool_guy", "my_album");
 			
 			// Sleep for a bit to give the server time to read the track into a file and start playing it. And for the 
@@ -418,10 +418,10 @@ public class QuClientTest {
 			assertTrue("we should not have any tracks in our playlist as nothing has been uploaded", currentPlaylist.getTracks().size() == 0);
 			
 			// Upload a track to the QuServer.
-			File audioFile = new File("TestAudiofiles/balls.mp3");
+			File audioFile = new File("TestAudioFiles/balls.mp3");
 			runningQuServerDevice.uploadAudioFile(audioFile, FileFormat.MP3, "balls_of_fire", "cool_guy", "my_album");
 			
-			File audioFile2 = new File("TestAudiofiles/classical.mp3");
+			File audioFile2 = new File("TestAudioFiles/classical.mp3");
 			runningQuServerDevice.uploadAudioFile(audioFile2, FileFormat.MP3, "classical", "old_guy", "classical_album");
 			
 			// Sleep for a bit to give the server time to read the track into a file and start playing it. And for the 
