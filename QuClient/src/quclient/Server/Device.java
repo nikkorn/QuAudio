@@ -33,7 +33,7 @@ public class Device {
 	
 	// Variables that relate to waiting for our welcome package?
 	private Object welcomePackageCheckLock = new Object();
-	private final int DEVICE_LINK_WELCOMEPACKAGE_TIMEOUT = 2000;
+	private final int DEVICE_LINK_WELCOMEPACKAGE_TIMEOUT = 4000;
 	private volatile boolean receivedPlayListUpdate = false;
 	private volatile boolean receivedVolumeUpdate = false;
 	
