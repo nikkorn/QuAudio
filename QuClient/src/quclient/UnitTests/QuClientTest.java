@@ -35,7 +35,7 @@ public class QuClientTest {
 		if(probe.initialise(null)) {
 			// Wait and get our results.
 			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
-			// We should have at least one (local QuServer) instance running.
+			// We should have at least one server instance running.
 			if(devices.size() == 0) {
 				fail("we should at least have got our locally running QuServer instance. Is it running?");
 			}
@@ -51,15 +51,12 @@ public class QuClientTest {
 	public void t2_ConnectAndDisconnect() {
 		NetProbe probe = new NetProbe();
 		ReachableQuDevice targetDevice = null;
-		// Attempt to get local Qu server instance
+		// Attempt to get Qu server instance
 		if(probe.initialise(null)) {
 			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
 			for(ReachableQuDevice device : devices) {
-				if(device.getAddress().equals("127.0.0.1")) {
-					// We will be using the local instance on Qu server for this test
-					targetDevice = device;
-					break;
-				}
+				targetDevice = device;
+				break;
 			}
 		} else {
 			fail("we failed to intialise our NetProbe");
@@ -103,15 +100,12 @@ public class QuClientTest {
 	public void t3_UpdateAndGetServerSettings() {
 		NetProbe probe = new NetProbe();
 		ReachableQuDevice targetDevice = null;
-		// Attempt to get local Qu server instance
+		// Attempt to get Qu server instance
 		if(probe.initialise(null)) {
 			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
 			for(ReachableQuDevice device : devices) {
-				if(device.getAddress().equals("127.0.0.1")) {
-					// We will be using the local instance on Qu server for this test
-					targetDevice = device;
-					break;
-				}
+				targetDevice = device;
+				break;
 			}
 		} else {
 			fail("we failed to intialise our NetProbe");
@@ -207,15 +201,12 @@ public class QuClientTest {
 	public void t4_UploadAndManipulateTrack() {
 		NetProbe probe = new NetProbe();
 		ReachableQuDevice targetDevice = null;
-		// Attempt to get local Qu server instance
+		// Attempt to get Qu server instance
 		if(probe.initialise(null)) {
 			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
 			for(ReachableQuDevice device : devices) {
-				if(device.getAddress().equals("127.0.0.1")) {
-					// We will be using the local instance on Qu server for this test
-					targetDevice = device;
-					break;
-				}
+				targetDevice = device;
+				break;
 			}
 		} else {
 			fail("we failed to intialise our NetProbe");
@@ -360,15 +351,12 @@ public class QuClientTest {
 	public void t5_UploadStopAndSkip() {
 		NetProbe probe = new NetProbe();
 		ReachableQuDevice targetDevice = null;
-		// Attempt to get local Qu server instance
+		// Attempt to get Qu server instance
 		if(probe.initialise(null)) {
 			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
 			for(ReachableQuDevice device : devices) {
-				if(device.getAddress().equals("127.0.0.1")) {
-					// We will be using the local instance on Qu server for this test
-					targetDevice = device;
-					break;
-				}
+				targetDevice = device;
+				break;
 			}
 		} else {
 			fail("we failed to intialise our NetProbe");
@@ -509,11 +497,8 @@ public class QuClientTest {
 		if(probe.initialise(null)) {
 			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
 			for(ReachableQuDevice device : devices) {
-				if(device.getAddress().equals("127.0.0.1")) {
-					// We will be using the local instance on Qu server for this test
-					targetDevice = device;
-					break;
-				}
+				targetDevice = device;
+				break;
 			}
 		} else {
 			fail("we failed to intialise our NetProbe");
