@@ -1,4 +1,6 @@
 QuServer/bin/
+QuServer/temp/uploads
+QuServer/logs/
 QuClient/bin/
 QuAD/bin/
 *.class
