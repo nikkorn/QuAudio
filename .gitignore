@@ -1,3 +1,4 @@
-/QuServer/bin/
-/QuClient/bin/
-/QuAD/bin/
+QuServer/bin/
+QuClient/bin/
+QuAD/bin/
+*.class
