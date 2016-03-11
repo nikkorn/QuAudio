@@ -1,5 +1,6 @@
 package quclient.ProxyPlaylist;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import quclient.Server.Device;
 import quclient.Server.OutgoingAction;
@@ -33,7 +34,11 @@ public class Track {
 			if(trackState == TrackState.PAUSED) {
 				// Create a new PLAY OutgoingAction
 				JSONObject jsoPlay = new JSONObject();
-				jsoPlay.put("track_id", trackId);
+				try {
+					jsoPlay.put("track_id", trackId);
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
 				// Queue this OutgoingAction
 				device.sendAction(new OutgoingAction(OutgoingActionType.PLAY, jsoPlay));
 			}
@@ -52,7 +57,11 @@ public class Track {
 			if(trackState == TrackState.PLAYING) {
 				// Create a new PAUSE OutgoingAction
 				JSONObject jsoPause = new JSONObject();
-				jsoPause.put("track_id", trackId);
+				try {
+					jsoPause.put("track_id", trackId);
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
 				// Queue this OutgoingAction
 				device.sendAction(new OutgoingAction(OutgoingActionType.PAUSE, jsoPause));
 			}
@@ -69,7 +78,11 @@ public class Track {
 		if(canInteract()) {
 			// Create a new STOP OutgoingAction
 			JSONObject jsoStop = new JSONObject();
-			jsoStop.put("track_id", trackId);
+			try {
+				jsoStop.put("track_id", trackId);
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
 			// Queue this OutgoingAction
 			device.sendAction(new OutgoingAction(OutgoingActionType.STOP, jsoStop));
 		} else {
@@ -85,7 +98,11 @@ public class Track {
 		if(canInteract()) {
 			// Create a new REMOVE OutgoingAction
 			JSONObject jsoRemove = new JSONObject();
-			jsoRemove.put("track_id", trackId);
+			try {
+				jsoRemove.put("track_id", trackId);
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
 			// Queue this OutgoingAction
 			device.sendAction(new OutgoingAction(OutgoingActionType.REMOVE, jsoRemove));
 		} else {
