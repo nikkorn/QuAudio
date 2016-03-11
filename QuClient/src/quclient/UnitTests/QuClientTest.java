@@ -553,7 +553,7 @@ public class QuClientTest {
 			
 			// Sleep for a bit, we want these tracks to be uploaded in order.
 			try {
-				Thread.sleep(600);
+				Thread.sleep(3000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -564,7 +564,7 @@ public class QuClientTest {
 			
 			// Sleep for a bit, we want these tracks to be uploaded in order.
 			try {
-				Thread.sleep(600);
+				Thread.sleep(3000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
