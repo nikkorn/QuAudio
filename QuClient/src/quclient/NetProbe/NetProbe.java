@@ -69,6 +69,7 @@ public class NetProbe {
             if(currentAddress.equals(localAddress)) {
                 continue;
             }
+
             // Initialise a Probe and start on a new thread
             Probe probe = new Probe(this, currentAddress);
             Thread probeThread = new Thread(probe);

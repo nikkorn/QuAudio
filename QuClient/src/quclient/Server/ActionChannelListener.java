@@ -41,6 +41,11 @@ public class ActionChannelListener implements Runnable{
                 break;
             }
             JSONObject incomingActionJSONObject = null;
+            // Check that our input isn't null, if it is then the connection could have been severed.
+            if(rawIncomingActionJSON == null) {
+                isConnected = false;
+                break;
+            }
             try {
                 // Attempt to create a JSONObject using the read input
                 incomingActionJSONObject = new JSONObject(rawIncomingActionJSON);

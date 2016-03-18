@@ -51,6 +51,7 @@ public class Device {
 
     // Represents the latest state of our Playlist
     private JSONObject proxyPlaylist = null;
+
     // Reference to the last instance of PlayList that was constructed, this is needed as we will have to set
     // the object as dirty the next time that the client receives a PUSH_PLAYLIST IncomingAction from the server
     private PlayList lastPlayList = null;
@@ -65,7 +66,7 @@ public class Device {
      * @throws IOException
      * @throws RuntimeException
      */
-    public void link(ReachableQuDevice reachableDevice, ClientConnectionConfig clientConfig) throws IOException, RuntimeException {
+    public void link(ReachableQuDevice reachableDevice, ClientConnectionConfig clientConfig) {
         this.reachableDevice = reachableDevice;
         this.deviceName = reachableDevice.getDeviceName();
         this.isProtected = reachableDevice.isProtected();
@@ -93,12 +94,20 @@ public class Device {
                     // Process incoming actions and check that we were still connected.
                     connected = processIncomingActions();
                 }
-                // We have disconnected, notify subscribing QuEventListeners.
+                // We have disconnected, notify subscribing QuEventListeners..
                 notifyQuEventListeners(QuEventType.DISCONNECTION);
             }
         });
         deviceThread.setDaemon(true);
         deviceThread.start();
+
+        // Check to see if we actually failed to connect our ActionChannel to our server. If so
+        // then notify QuEventListeners of this.
+        if(actionChannel.getHandShakeResponse() != HandshakeResponse.ACCEPTED) {
+            notifyQuEventListeners(QuEventType.FAILED_CONNECTION);
+            // Return so we don't end up waiting around for the packages
+            return;
+        }
 
         // Don't return until we get our welcome package or we timeout.
         long welcomePackageWaitStart = System.currentTimeMillis();
@@ -121,9 +130,10 @@ public class Device {
                 }
             }
         }
-
         // We can now regard this object as being fully initialised.
         this.initilised = true;
+        // Notify subscribing QuEventListeners that they have connected.
+        notifyQuEventListeners(QuEventType.CONNECTION);
     }
 
     /**
@@ -531,9 +541,10 @@ public class Device {
      * @param The type of event
      */
     private void notifyQuEventListeners(QuEventType eventType) {
-        // We will not raise any QuEvents until this object is fully initialised as users will most likely attempt
-        // to interact with the Device instance on receiving the event, which wont be great if were not fully initialised.
-        if(!this.initilised) {
+        // If this event type is NOT that of a failed connection and this device was
+        // never fully initialised we should just return, because we shouldn't call
+        // any event handlers and pass a reference to an unlinked device instance.
+        if(eventType != QuEventType.FAILED_CONNECTION && !initilised) {
             return;
         }
         // We need a reference to this Device instance.
@@ -545,7 +556,7 @@ public class Device {
                 switch(eventType) {
                 case DISCONNECTION:
                     // Call the appropriate event handler.
-                    subscriber.quQuDisconnect(sourceDevice);
+                    subscriber.onQuDisconnect(sourceDevice);
                     break;
                 case PLAYLIST_UPDATED:
                     // Call the appropriate event handler.
@@ -559,6 +570,16 @@ public class Device {
                     // Call the appropriate event handler.
                     subscriber.onQuMasterVolumeUpdate(sourceDevice);
                     break;
+                case CONNECTION:
+                    // Call the appropriate event handler.
+                    subscriber.onQuConnect(sourceDevice);
+                    break;
+                case FAILED_CONNECTION:
+                    // Call the appropriate event handler. We can't pass this object back as we never fully
+                    // initialised it. So we simply hand back the ReachableQuDevice object that was passed
+                    // when the user called link()
+                    subscriber.onQuLinkFailure(this.reachableDevice, this.actionChannel.getHandShakeResponse());
+                    break;
                 }
             }
         }
@@ -571,7 +592,7 @@ public class Device {
     public boolean isConnected() {
         // The user must have fully initialised this object.
         if(!initilised) {
-            throw new RuntimeException("Device is not fully initialised, call link()");
+            return false;
         }
         return this.actionChannel.isConnected();
     }

@@ -7,7 +7,6 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -38,7 +37,7 @@ public class ActionChannel {
      * @throws IOException
      * @throws UnknownHostException
      */
-    public ActionChannel(final String serverAddress, final int serverClientManagerPort, final String clientId, final String clientName, final String accessPassword) throws UnknownHostException, IOException, RuntimeException {
+    public ActionChannel(final String serverAddress, final int serverClientManagerPort, final String clientId, final String clientName, final String accessPassword) {
         final ActionChannel newActionChannel = this;
         // Attempt to establish a connection to the server ClientManager
         Thread actionChannelInitialisationThread = new Thread(new Runnable() {
@@ -55,7 +54,9 @@ public class ActionChannel {
                     HandshakeResponse serverHandshakeResponse = sendHandshake(clientId, clientName, accessPassword, socketBufferedReader);
                     newActionChannel.setHandshakeResponse(serverHandshakeResponse);
                     newActionChannel.setActionChannelReader(socketBufferedReader);
-                } catch (IOException e) {}
+                } catch (IOException e) {
+                    newActionChannel.setHandshakeResponse(HandshakeResponse.CONNECTION_FAILED);
+                }
             }
         });
         actionChannelInitialisationThread.start();
@@ -64,24 +65,12 @@ public class ActionChannel {
         while(actionChannelInitialisationThread.getState() != Thread.State.TERMINATED){
            // TODO  Is it right to use Thread.yield(); here???
         }
-        // The initialisation thread has finished, handle the handshake response now.
-        switch(this.initialisationThreadResponse) {
-            case ACCEPTED:
-                // The handshake was a success, continue
-                actionChannelListener = new ActionChannelListener(newActionChannel, this.actionChannelReader);
-                // Set this ActionChannel as being connected to the server
-                isConnected = true;
-                break;
-            case CONNECTION_FAILED:
-                throw new IOException("error: connection failed");
-            case DECLINED:
-                throw new RuntimeException("server declined connection");
-            case WRONG_ACCESS_PASSWORD:
-                throw new RuntimeException("incorrect access password");
-            case CLIENT_ALREADY_CONNECTED:
-                throw new RuntimeException("client already connected");
-            default:
-                throw new RuntimeException("unknown response");
+        // Were we accepted by the server?
+        if(this.initialisationThreadResponse == HandshakeResponse.ACCEPTED) {
+            // The handshake was a success, continue
+            actionChannelListener = new ActionChannelListener(newActionChannel, this.actionChannelReader);
+            // Set this ActionChannel as being connected to the server
+            isConnected = true;
         }
     }
 
@@ -201,6 +190,14 @@ public class ActionChannel {
     };
 
     /**
+     * Returns the handshake response.
+     * @return handshake response.
+     */
+    public HandshakeResponse getHandShakeResponse() {
+        return this.initialisationThreadResponse;
+    }
+
+    /**
      * Called by the ActionChannel Initialisation thread when it gets a handshake response from the server.
      * Will set a reference to the BufferedReader that was used during initialisation so that we can reuse it for
      * the ActionChannelListener we will create (as long as we got a good handshake).
@@ -209,18 +206,4 @@ public class ActionChannel {
     public void setActionChannelReader(BufferedReader reader) {
         this.actionChannelReader = reader;
     };
-
-    /**
-     * The potential outcomes of sending a handshake to the server
-     * @author Nikolas Howard
-     *
-     */
-    public enum HandshakeResponse {
-        ACCEPTED,
-        WRONG_ACCESS_PASSWORD,
-        CONNECTION_FAILED,
-        DECLINED,
-        CLIENT_ALREADY_CONNECTED,
-        UNIDENTIFIED
-    }
 }

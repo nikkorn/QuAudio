@@ -4,7 +4,6 @@ import static org.junit.Assert.*;
 import org.junit.FixMethodOrder;
 import org.junit.runners.MethodSorters;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.UUID;
@@ -17,6 +16,7 @@ import quclient.ProxyPlaylist.PlayList;
 import quclient.ProxyPlaylist.TrackState;
 import quclient.QuEvent.QuEventListener;
 import quclient.Server.Device;
+import quclient.Server.HandshakeResponse;
 
 /**
  * Various tests for the QuClient API Library. A local (and up-to-date) instance of the QuServer MUST be running. 
@@ -73,8 +73,6 @@ public class QuClientTest {
 			Device runningQuServerDevice = new Device();
 			try {
 				runningQuServerDevice.link(targetDevice, config);
-			} catch (IOException e) {
-				fail("got IOException on attempting to link our Device object");
 			} catch (RuntimeException e1) {
 				fail("got RuntimeException on attempting to link our Device object");
 			} 
@@ -140,14 +138,18 @@ public class QuClientTest {
 				public void onQuMasterVolumeUpdate(Device sourceDevice) {
 				}
 				@Override
-				public void quQuDisconnect(Device sourceDevice) {
+				public void onQuDisconnect(Device sourceDevice) {
+				}
+				@Override
+				public void onQuConnect(Device sourceDevice) {
+				}
+				@Override
+				public void onQuLinkFailure(ReachableQuDevice device, HandshakeResponse handshakeResponse) {
 				}
 			});
 						
 			try {
 				runningQuServerDevice.link(targetDevice, config);
-			} catch (IOException e) {
-				fail("got IOException on attempting to link our Device object");
 			} catch (RuntimeException e1) {
 				fail("got RuntimeException on attempting to link our Device object");
 			} 
@@ -236,15 +238,19 @@ public class QuClientTest {
 				public void onQuMasterVolumeUpdate(Device sourceDevice) {
 				}
 				@Override
-				public void quQuDisconnect(Device sourceDevice) {
+				public void onQuDisconnect(Device sourceDevice) {
+				}
+				@Override
+				public void onQuConnect(Device sourceDevice) {
+				}
+				@Override
+				public void onQuLinkFailure(ReachableQuDevice device, HandshakeResponse handshakeResponse) {
 				}
 			});
 			
 			// Attempt to connect to server.
 			try {
 				runningQuServerDevice.link(targetDevice, config);
-			} catch (IOException e) {
-				fail("got IOException on attempting to link our Device object");
 			} catch (RuntimeException e1) {
 				fail("got RuntimeException on attempting to link our Device object");
 			} 
@@ -386,15 +392,19 @@ public class QuClientTest {
 				public void onQuMasterVolumeUpdate(Device sourceDevice) {
 				}
 				@Override
-				public void quQuDisconnect(Device sourceDevice) {
+				public void onQuDisconnect(Device sourceDevice) {
+				}
+				@Override
+				public void onQuConnect(Device sourceDevice) {
+				}
+				@Override
+				public void onQuLinkFailure(ReachableQuDevice device, HandshakeResponse handshakeResponse) {
 				}
 			});
 			
 			// Attempt to connect to server.
 			try {
 				runningQuServerDevice.link(targetDevice, config);
-			} catch (IOException e) {
-				fail("got IOException on attempting to link our Device object");
 			} catch (RuntimeException e1) {
 				fail("got RuntimeException on attempting to link our Device object");
 			} 
@@ -528,15 +538,19 @@ public class QuClientTest {
 				public void onQuMasterVolumeUpdate(Device sourceDevice) {
 				}
 				@Override
-				public void quQuDisconnect(Device sourceDevice) {
+				public void onQuDisconnect(Device sourceDevice) {
+				}
+				@Override
+				public void onQuConnect(Device sourceDevice) {
+				}
+				@Override
+				public void onQuLinkFailure(ReachableQuDevice device, HandshakeResponse handshakeResponse) {
 				}
 			});
 			
 			// Attempt to connect to server.
 			try {
 				runningQuServerDevice.link(targetDevice, config);
-			} catch (IOException e) {
-				fail("got IOException on attempting to link our Device object");
 			} catch (RuntimeException e1) {
 				fail("got RuntimeException on attempting to link our Device object");
 			} 
