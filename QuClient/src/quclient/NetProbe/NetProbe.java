@@ -1,8 +1,18 @@
 package quclient.NetProbe;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * 
@@ -10,90 +20,135 @@ import java.util.ArrayList;
  *
  */
 public class NetProbe {
-    private String subnet;
-    private String localAddress;
     private final ArrayList<ReachableQuDevice> availableDevices = new ArrayList<ReachableQuDevice>();
 
     /**
-     * Initialises the NetProbe
-     * @param Address of this machine on the network, if null then we will attempt to deduce it.
-     * @return success
-     */
-    public boolean initialise(String address) {
-        // Check that we weren't given a null address, if we have then we are expected to deduce the address.
-        if(address == null) {
-             // Get the local address of this machine
-            try {
-                InetAddress ipAddr = InetAddress.getLocalHost();
-                address = ipAddr.getHostAddress();
-            } catch (UnknownHostException ex) {
-                // We failed to get address, return false.
-                return false;
-            }
-        }
-        // Check to see if the host address is the loopback address, if so we're not connected to a network.
-        if (address.equals(C.LOCALHOST)) {
-            return false;
-        }
-        // Strip the last byte of the local address to get subnet
-        String[] localHostAddressBytes = address.split("\\.");
-        // Check that we have 4 values (valid *.*.*.* layout for IPv4)
-        if(localHostAddressBytes.length != 4) {
-            // Wrong number of byte values.
-            return false;
-        }
-        this.subnet = localHostAddressBytes[0] + "." + localHostAddressBytes[1] + "." + localHostAddressBytes[2];
-        // Set the local address
-        this.localAddress = address;
-        // It seems that everything went well, return true.
-        return true;
-    }
-
-    /**
-     * Uses a multithreaded solution to probe for any available servers on the local network.
+     * Get any available servers on the local network.
      * @param runLocally If true the local machine is included in the search for an available server.
      * @return A list of available devices
      */
     public ArrayList<ReachableQuDevice> getReachableQuDevices(boolean runLocally) {
-        // List of all threads that have probes running on them
-        ArrayList<Thread> probeThreads = new ArrayList<Thread>();
         // Clear the list of available devices
-        synchronized(availableDevices) {
-            availableDevices.clear();
-        }
-        // Iterate over each ip address in the subnet
-        for (int i = 1; i < 255; i++) {
-            // Construct the current address
-            String currentAddress = subnet + '.' + i;
-            // Make sure were not looking at address of this machine
-            if(currentAddress.equals(localAddress)) {
-                continue;
-            }
-
-            // Initialise a Probe and start on a new thread
-            Probe probe = new Probe(this, currentAddress);
-            Thread probeThread = new Thread(probe);
-            probeThreads.add(probeThread);
-            probeThread.start();
-        }
-        // If the user has requested to run the client on the same machine then we include loopback
-        if(runLocally) {
-            // Initialise a Probe to search for a running server locally and start on a new thread
-            Probe probe = new Probe(this, C.LOCALHOST);
-            Thread probeThread = new Thread(probe);
-            probeThreads.add(probeThread);
-            probeThread.start();
-        }
-        // Rejoin all probe threads.
-        try {
-            for (Thread probeThread: probeThreads) {
-                probeThread.join();
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        availableDevices.clear();
+        //In a separate thread, send a probe and listen for responses.
+        Thread probeThread = new Thread(new Runnable() {
+        	
+			@Override
+			public void run() {
+				// A list that temporarily stores the addresses of any servers that respond.
+		        ArrayList<String> respondingServerAddresses = new ArrayList<String>();
+		        // Create our DatagramSocket on which to send a probe and listen for reponses.
+		        DatagramSocket probeSocket = null;
+		        
+		        try {
+		        	// Initialise our DatagramSocket.
+					probeSocket = new DatagramSocket();
+					probeSocket.setBroadcast(true);
+					// Send our probe
+					byte[] probeMessage = "QU_C_PRB".getBytes();
+					try {
+						DatagramPacket probe = new DatagramPacket(probeMessage, probeMessage.length, InetAddress.getByName("255.255.255.255"), C.PROBE_PORT);
+						probeSocket.send(probe);
+					} catch (Exception e) {
+						// Error sending probe.
+						e.printStackTrace();
+					} 
+					
+					// Now wait for server responses.
+					probeSocket.setSoTimeout(1000);  
+					boolean listening = true;
+					while(listening) {
+					    try {
+					        byte[] responseBuffer = new byte[15000];  
+					        DatagramPacket possibleResponse = new DatagramPacket(responseBuffer, responseBuffer.length);  
+							probeSocket.receive(possibleResponse);
+					        // We have got a packet! is it a valid response?
+					        String response = new String(possibleResponse.getData());  
+					        if(response != null && response.trim().equals("QU_S_RSP")) {
+					        	// This is a valid response!
+					        	respondingServerAddresses.add(possibleResponse.getAddress().getHostAddress());
+					        }
+					    } catch(SocketTimeoutException ste) {
+					        // If another server hasn't responded by now, then we can assume there are no more.
+					    	listening = false;
+					    } catch (IOException e) {} 
+					}
+				} catch (SocketException e) {
+					e.printStackTrace();
+				} finally {
+					// Always close the socket.
+					if(probeSocket != null) {
+						probeSocket.close();
+					}
+				}
+		        
+		        // We have given enough time for any servers to respond. Now visit each server found and get details from it.
+		        for(String serverAddress : respondingServerAddresses) {
+		        	ReachableQuDevice device = createReachableQuDeviceObject(serverAddress);
+		        	if(device != null) {
+		        		// Add the device to our list of reachable qu devices.
+		        		addReachableDevice(device);
+		        	}
+		        }
+			}
+			
+        });
+        probeThread.setDaemon(true);
+        probeThread.start();
+        // Wait for the probe thread to finish.
+        while(probeThread.getState() != Thread.State.TERMINATED) {}
         // Return all of the available devices in the form of ReachableQuDevice objects.
         return availableDevices;
+    }
+    
+    public ReachableQuDevice createReachableQuDeviceObject(String serverAddress) {
+    	Socket probeSocket = null;
+    	ReachableQuDevice locatedDevice = null;
+        try {
+            // Create a socket on which to probe for a response from the Qu Server.
+            probeSocket = new Socket();
+            try {
+                probeSocket.connect(new InetSocketAddress(serverAddress, C.PROBE_CLIENT_RECEIVER_PORT), C.PROBE_SOCKET_CONNECT_TIMEOUT);
+            } catch (IOException e) {}
+
+            // Set socket timeout as the target will in most cases not respond.
+            probeSocket.setSoTimeout(C.PROBE_SOCKET_READ_TIMEOUT);
+
+            BufferedReader br = new BufferedReader(new InputStreamReader(probeSocket.getInputStream()));
+            String response = br.readLine();
+
+            // Construct a JSON object using the devices response.
+            JSONObject drJSON = new JSONObject(response);
+
+            // Construct a String array of super client id's.
+            String[] superClientIds = new String[drJSON.getJSONArray("super_users").length()];
+            for(int i = 0; i < superClientIds.length; i++) {
+                superClientIds[i] = drJSON.getJSONArray("super_users").getString(i);
+            }
+
+            // Create our representation of the reachable device.
+            locatedDevice = new ReachableQuDevice(drJSON.getString("device_id"),
+                    drJSON.getString("device_name"),
+                    drJSON.getInt("afr_port"),
+                    drJSON.getInt("cm_port"),
+                    serverAddress,
+                    drJSON.getBoolean("isProtected"),
+                    superClientIds);
+     
+        } catch (IOException e)
+        {} catch (JSONException jE) {}
+        finally {
+            // Close the socket
+            try {
+                if(probeSocket != null) {
+                    probeSocket.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        // Return the ReachableQuDevice instance we made.
+    	return locatedDevice;
     }
 
     /**
@@ -104,21 +159,5 @@ public class NetProbe {
         synchronized(availableDevices) {
             availableDevices.add(device);
         }
-    }
-
-    /**
-     * Get the subnet. 
-     * @return subnet
-     */
-    public String getSubnet() {
-        return subnet;
-    }
-
-    /**
-     * set the subnet
-     * @param subnet
-     */
-    public void setSubnet(String subnet) {
-        this.subnet = subnet;
     }
 }

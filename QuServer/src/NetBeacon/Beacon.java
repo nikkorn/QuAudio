@@ -2,6 +2,9 @@ package NetBeacon;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -15,36 +18,96 @@ import Server.Server;
  * @author Nikolas Howard
  *
  */
-public class Beacon implements Runnable {
-	ServerSocket beaconServerSocket = null;
+public class Beacon {
+	// Used to accept connections from clients that have found this server on the network and return various details.
+	ServerSocket clientReceiverSocket = null;
+	// Listens for UDP packets (probes) sent from clients, used to return a confirmation of 
+	// of this servers presence on the local network.
+	DatagramSocket probeListenerSocket = null;
 	
-	public Beacon(int port) {
+	public Beacon(int beaconPort, int receiverPort) {
 		try {
-			beaconServerSocket = new ServerSocket(port);
+			clientReceiverSocket = new ServerSocket(receiverPort);
 		} catch (IOException e) {
 			// If this fails they quit the app.
-			Log.log(Log.MessageType.CRITICAL, "NETPROBE_BEACON", "failed to initialise beacon server socket");
+			Log.log(Log.MessageType.CRITICAL, "NETPROBE_BEACON", "failed to initialise beacon receiver");
+			Log.forceWrite();
+			System.exit(0);
+		}
+		try {
+			probeListenerSocket = new DatagramSocket(beaconPort, InetAddress.getByName("0.0.0.0"));
+			probeListenerSocket.setBroadcast(true);
+		} catch (IOException e) {
+			// If this fails they quit the app.
+			Log.log(Log.MessageType.CRITICAL, "NETPROBE_BEACON", "failed to initialise beacon probe listener");
 			Log.forceWrite();
 			System.exit(0);
 		}
 	}
-
-	@Override
-	public void run() {
-		// Continuously listen for probes from clients.
+	
+	/**
+	 * Start the beacon.
+	 */
+	public void start() {
+		// Start the probe listener and client receiver in separate threads.
+		Thread probeListenerThread = new Thread(new Runnable() {
+			@Override
+			public void run() { runProbeListener(); }
+		});
+		probeListenerThread.setDaemon(true);
+		probeListenerThread.start();
+		Thread clientReceiverThread = new Thread(new Runnable() {
+			@Override
+			public void run() { runClientReceiver(); }
+		});
+		clientReceiverThread.setDaemon(true);
+		clientReceiverThread.start();
+	}
+	
+	/**
+	 * Listens for UDP packets (probes) in its own thread and on finding one returns a confirmation packet.
+	 * This allows clients to locate servers on the network.
+	 */
+	public void runProbeListener() {
+		// Continuously listen for probes.
+		while(true) {
+			byte[] packetBuffer = new byte[15000];
+			DatagramPacket potentialProbe = new DatagramPacket(packetBuffer, packetBuffer.length);
+			try {
+				probeListenerSocket.receive(potentialProbe);
+				// We received a packet, check its contents to see if it is a probe.
+				String packetMessage = new String(potentialProbe.getData());
+				if(packetMessage.trim().equals("QU_C_PRB")) {
+					// This is a probe!
+					Log.log(Log.MessageType.INFO, "NETPROBE_BEACON", "got probe from '" + potentialProbe.getAddress().getHostAddress() + "', returning response");
+					// Form our response message.
+					byte[] sendData = "QU_S_RSP".getBytes();
+					// Send our response.
+					DatagramPacket probeResponse = new DatagramPacket(sendData, sendData.length, potentialProbe.getAddress(), potentialProbe.getPort());
+					probeListenerSocket.send(probeResponse);
+				}
+			} catch (IOException e) {}
+		}
+	}
+	
+	/**
+	 * Waits for connections from clients that have previously found the server via a probe.
+	 * On getting a connection, we return various server details.
+	 */
+	public void runClientReceiver() {
+		// Continuously listen for connections from clients.
 		while(true) {
 			boolean gotSocket = true;
 			Socket senderSocket = null;
 			try {
-				senderSocket = beaconServerSocket.accept();
+				senderSocket = clientReceiverSocket.accept();
 			} catch (IOException e) {
-				// If we get an IOException here then just log it as an unsuccesful connection.
+				// If we get an IOException here then just log it as an unsuccessful connection.
 				gotSocket = false;
 				Log.log(Log.MessageType.WARNING, "NETPROBE_BEACON", "failed to get connecting client socket");
 			}
 			// Only continue if we successfully grabbed a Socket.
 			if(gotSocket) {
-				Log.log(Log.MessageType.INFO, "NETPROBE_BEACON", "got probe from client at '" + senderSocket.getRemoteSocketAddress().toString() + "'");
 				// Get all property info we need to send as a response to the probe.
 				String deviceId = Server.properties.getDeviceId();
 				String deviceName = Server.properties.getDeviceName();

@@ -32,15 +32,11 @@ public class QuClientTest {
 	@Test
 	public void t1_FindLocalServer() {
 		NetProbe probe = new NetProbe();
-		if(probe.initialise(null)) {
-			// Wait and get our results.
-			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
-			// We should have at least one server instance running.
-			if(devices.size() == 0) {
-				fail("we should at least have got our locally running QuServer instance. Is it running?");
-			}
-		} else {
-			fail("we failed to intialise our NetProbe");
+		// Wait and get our results.
+		ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
+		// We should have at least one server instance running.
+		if(devices.size() == 0) {
+			fail("we should at least have got our locally running QuServer instance. Is it running?");
 		}
 	}
 	
@@ -52,14 +48,10 @@ public class QuClientTest {
 		NetProbe probe = new NetProbe();
 		ReachableQuDevice targetDevice = null;
 		// Attempt to get Qu server instance
-		if(probe.initialise(null)) {
-			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
-			for(ReachableQuDevice device : devices) {
-				targetDevice = device;
-				break;
-			}
-		} else {
-			fail("we failed to intialise our NetProbe");
+		ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
+		for(ReachableQuDevice device : devices) {
+			targetDevice = device;
+			break;
 		}
 		// Check that we actually got a ReachableQuDevice
 		if(targetDevice != null) {
@@ -99,14 +91,10 @@ public class QuClientTest {
 		NetProbe probe = new NetProbe();
 		ReachableQuDevice targetDevice = null;
 		// Attempt to get Qu server instance
-		if(probe.initialise(null)) {
-			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
-			for(ReachableQuDevice device : devices) {
-				targetDevice = device;
-				break;
-			}
-		} else {
-			fail("we failed to intialise our NetProbe");
+		ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
+		for(ReachableQuDevice device : devices) {
+			targetDevice = device;
+			break;
 		}
 		// Check that we actually got a ReachableQuDevice
 		if(targetDevice != null) {
@@ -204,14 +192,10 @@ public class QuClientTest {
 		NetProbe probe = new NetProbe();
 		ReachableQuDevice targetDevice = null;
 		// Attempt to get Qu server instance
-		if(probe.initialise(null)) {
-			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
-			for(ReachableQuDevice device : devices) {
-				targetDevice = device;
-				break;
-			}
-		} else {
-			fail("we failed to intialise our NetProbe");
+		ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
+		for(ReachableQuDevice device : devices) {
+			targetDevice = device;
+			break;
 		}
 		// Check that we actually got a ReachableQuDevice
 		if(targetDevice != null) {
@@ -358,14 +342,10 @@ public class QuClientTest {
 		NetProbe probe = new NetProbe();
 		ReachableQuDevice targetDevice = null;
 		// Attempt to get Qu server instance
-		if(probe.initialise(null)) {
-			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
-			for(ReachableQuDevice device : devices) {
-				targetDevice = device;
-				break;
-			}
-		} else {
-			fail("we failed to intialise our NetProbe");
+		ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
+		for(ReachableQuDevice device : devices) {
+			targetDevice = device;
+			break;
 		}
 		// Check that we actually got a ReachableQuDevice
 		if(targetDevice != null) {
@@ -504,14 +484,10 @@ public class QuClientTest {
 		NetProbe probe = new NetProbe();
 		ReachableQuDevice targetDevice = null;
 		// Attempt to get local Qu server instance
-		if(probe.initialise(null)) {
-			ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
-			for(ReachableQuDevice device : devices) {
-				targetDevice = device;
-				break;
-			}
-		} else {
-			fail("we failed to intialise our NetProbe");
+		ArrayList<ReachableQuDevice> devices = probe.getReachableQuDevices(true);
+		for(ReachableQuDevice device : devices) {
+			targetDevice = device;
+			break;
 		}
 		// Check that we actually got a ReachableQuDevice
 		if(targetDevice != null) {

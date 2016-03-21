@@ -68,7 +68,12 @@ public class Properties {
 	}
 	
 	public synchronized int getNetProbeBeaconPort() {
-		Node node = xmlDoc.getDocumentElement().getElementsByTagName("NPB_PORT").item(0);
+		Node node = xmlDoc.getDocumentElement().getElementsByTagName("NPB_BEACON_PORT").item(0);
+		return Integer.parseInt(node.getTextContent());
+	}
+	
+	public synchronized int getNetProbeReceiverPort() {
+		Node node = xmlDoc.getDocumentElement().getElementsByTagName("NPB_REC_PORT").item(0);
 		return Integer.parseInt(node.getTextContent());
 	}
 	

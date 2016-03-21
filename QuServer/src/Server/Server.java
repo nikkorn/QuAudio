@@ -59,12 +59,10 @@ public class Server {
 		
 		// Initialise and start NetProbe Beacon
 		Log.log(Log.MessageType.INFO, "NETPROBE_BEACON", "initialising...");
-		Beacon netprobeBeacon = new Beacon(properties.getNetProbeBeaconPort());
+		Beacon netprobeBeacon = new Beacon(properties.getNetProbeBeaconPort(), properties.getNetProbeReceiverPort());
 		Log.log(Log.MessageType.INFO, "NETPROBE_BEACON", "initialised!");
 		Log.log(Log.MessageType.INFO, "NETPROBE_BEACON", "starting...");
-		Thread beaconThread = new Thread(netprobeBeacon);
-		beaconThread.setDaemon(true);
-		beaconThread.start();
+		netprobeBeacon.start();
 		Log.log(Log.MessageType.INFO, "NETPROBE_BEACON", "started!");
 		
 		// Initialise and start AudioFileReceiver
