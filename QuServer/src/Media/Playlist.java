@@ -25,13 +25,14 @@ public class Playlist {
 		if(tracks.size() > 0){
 			// Check that the current track is not stopped, if it is then skip it.
 			if(this.getCurrentTrack().getState() == TrackState.STOPPED) {
+				Log.log(Log.MessageType.INFO, "PLAYLIST", "track '" + this.getCurrentTrack().getAudioFile().getName() + "' finished");
 				this.getCurrentTrack().dispose();
 				tracks.remove(0);
 				if(tracks.size() > 0) {
 					this.getCurrentTrack().play();
-					// We need to broadcast change
-					setPushPlayListPending(true);
 				}
+				// We need to broadcast change
+				setPushPlayListPending(true);
 			}
 		}
 		// Has the state of the PlayList changed since the last time we broadcast it's state to clients?
