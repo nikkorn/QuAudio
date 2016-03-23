@@ -1,18 +1,22 @@
 package Media;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.File;
+import java.util.Map;
 import FileTransfer.AudioFile;
 import Server.Log;
-import javazoom.jl.decoder.JavaLayerException;
-import javazoom.jl.player.Player;
+import javazoom.jlgui.basicplayer.BasicController;
+import javazoom.jlgui.basicplayer.BasicPlayer;
+import javazoom.jlgui.basicplayer.BasicPlayerEvent;
+import javazoom.jlgui.basicplayer.BasicPlayerException;
+import javazoom.jlgui.basicplayer.BasicPlayerListener;
 
-public class Track_MP3 extends Playable {
-	FileInputStream audioFileInputStream = null;
-	Thread playThread = null;
-	PlayRunnable playRunnable = null;
-	int fileBytes = 0;
+public class Track_MP3 extends Playable implements BasicPlayerListener {
+	// Our player's BasicController.
+	private BasicController control = null;
+	// The state of this track.
+	private volatile TrackState state = TrackState.PENDING;
+	// Has the track been started before?
+	private boolean trackIsNew = true;
 	
 	public Track_MP3(AudioFile audioFile) {
 		super(audioFile);
@@ -20,29 +24,22 @@ public class Track_MP3 extends Playable {
 
 	@Override
 	public void initialise(boolean playOnReady) {
-		Player player = null;
+		// Set up the player and controller.
+		BasicPlayer player = new BasicPlayer();
+		control = (BasicController) player;
+		// Listen for player events.
+		player.addBasicPlayerListener(this);
 		
-		try {
-			audioFileInputStream = new FileInputStream(this.getAudioFile().getPath());
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+		try {			
+			// Open the file.
+			control.open(new File(this.getAudioFile().getPath()));
+		} catch (BasicPlayerException e) {
+			// We had an error setting up the player for this file, just set its state as STOPPED so the playlist dumps it.
+			Log.log(Log.MessageType.ERROR, "TRACK", "error setting up player for '" + this.getAudioFile().getName() + "'");
+			this.state = TrackState.STOPPED;
 		}
 		
-		try {
-			fileBytes = audioFileInputStream.available();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		try {
-			player = new Player(audioFileInputStream);
-		} catch (JavaLayerException e) {
-			e.printStackTrace();
-		}
-		
-		playRunnable = new PlayRunnable(player);
-		playThread = new Thread(playRunnable);
-		
+		// Start playing the file if the playlist has requested it
 		if(playOnReady) {
 			play();
 		}
@@ -51,41 +48,71 @@ public class Track_MP3 extends Playable {
 	@Override
 	public void play() {
 		Log.log(Log.MessageType.INFO, "TRACK", "play '" + this.getAudioFile().getName() + "'");
-		// If our player thread is new then it needs to be started.
-		if(playThread.getState() == Thread.State.NEW) {
-			playThread.start();
+		// Play this track, whether its the first time or we are un-pausing.
+		if(trackIsNew) {
+			try {
+				control.play();
+			} catch (BasicPlayerException e) {
+				// We had an error playing this file, just set its state as STOPPED so the playlist dumps it.
+				Log.log(Log.MessageType.ERROR, "TRACK", "error playing track '" + this.getAudioFile().getName() + "'");
+				this.state = TrackState.STOPPED;
+			}
+			// This track is no longer new
+			trackIsNew = false;
+			// Set the track state to playing.
+			this.state = TrackState.PLAYING;
+		} else {
+			try {
+				control.resume();
+			} catch (BasicPlayerException e) {
+				// We had an error resuming this file, just set its state as STOPPED so the playlist dumps it.
+				Log.log(Log.MessageType.ERROR, "TRACK", "error resuming track '" + this.getAudioFile().getName() + "'");
+				this.state = TrackState.STOPPED;
+			}
+			// Set the track state to playing.
+			this.state = TrackState.PLAYING;
 		}
-		playRunnable.setState(TrackState.PLAYING);
 	}
 
 	@Override
 	public void pause() {
-		Log.log(Log.MessageType.INFO, "TRACK", "pause '" + this.getAudioFile().getName() + "'");
-		playRunnable.setState(TrackState.PAUSED);
+		try {
+			control.pause();
+		} catch (BasicPlayerException e) {
+			// We had an error pausing this file, just set its state as STOPPED so the playlist dumps it.
+			Log.log(Log.MessageType.ERROR, "TRACK", "error pausing track '" + this.getAudioFile().getName() + "'");
+			this.state = TrackState.STOPPED;
+		}
+		// Set the track state to playing.
+		this.state = TrackState.PAUSED;
 	}
 
 	@Override
 	public void skipTo(double position) {
-		Log.log(Log.MessageType.INFO, "TRACK", "skip to position '" + position + "' in '" + this.getAudioFile().getName() + "'");
 		// TODO Finish
 	}
 
 	@Override
 	public void stop() {
-		Log.log(Log.MessageType.INFO, "TRACK", "stop '" + this.getAudioFile().getName() + "'");
-		playRunnable.setState(TrackState.STOPPED);
+		try {
+			control.pause();
+		} catch (BasicPlayerException e) {
+			// We had an error stopping this file.
+			Log.log(Log.MessageType.ERROR, "TRACK", "error stopping track '" + this.getAudioFile().getName() + "'");
+		}
+		// Set the track state to playing.
+		this.state = TrackState.STOPPED;
 	}
 
 	@Override
 	public void deleteAudioData() {
-		Log.log(Log.MessageType.INFO, "TRACK", "delete audio data for '" + this.getAudioFile().getName() + "'");
 		// TODO Delete the .mp3 off the disc
 	}
 
 	@Override
 	public TrackState getState() {
 		// This may need seeing to as the states are most likely not mapped up correctly
-		return playRunnable.getState();
+		return this.state;
 	}
 
 	@Override
@@ -104,69 +131,21 @@ public class Track_MP3 extends Playable {
 	public void dispose() {
 		
 	}
-	
-	/**
-	 * 
-	 * @author Nikolas Howard
-	 *
-	 */
-	public class PlayRunnable implements Runnable {
-		private TrackState state = TrackState.PENDING;
-		private Player player = null;
-		private volatile boolean isLocked = false;
-		
-		PlayRunnable(Player player) {
-			this.player = player;
-		}
-		
-		public void run() {
-			try {
-				// Block while the file state is PENDING
-				while(state == TrackState.PENDING) {}
-				// Start the track loop, we should NOT do any intensive stuff here as that will mess up playback.
-				do {
-					// Check to see if we need to pause 
-				    if(state == TrackState.PAUSED) {
-				    	// Lock this PlayRunnable 
-				    	isLocked = true;
-				    	while(isLocked) {
-				    		// We are currently paused. Might as well sleep for a bit.
-				    		try {
-								Thread.sleep(5);
-							} catch (InterruptedException e) { e.printStackTrace(); }
-				    	}
-				    } 
-				    // Check to see if we need to stop
-				    if(state == TrackState.STOPPED) {
-				    	break;
-				    }
-				} while(player.play(1));
-				// We have finished playing all bytes in the track. Move to the STOPPED state.
-				state = TrackState.STOPPED;
-			} catch (JavaLayerException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		/**
-		 * Get the state for this PlayRunnable
-		 * @param state
-		 */
-		public TrackState getState() {
-			return state;
-		}
-		
-		/**
-		 * Set the state for this PlayRunnable
-		 * @param state
-		 */
-		public void setState(TrackState state) {
-			this.state = state;
-			// If we are changing state to anything other than PAUSED and the PlayRunnable
-			// thread is currently locked then unlock it.
-			if(state != TrackState.PAUSED && isLocked) {
-				isLocked = false;
-			}
+
+	@Override
+	public void stateUpdated(BasicPlayerEvent event) {
+		// Listen for track stopped event.
+		if(event.getCode() == BasicPlayerEvent.STOPPED) {
+			this.state = TrackState.STOPPED;
 		}
 	}
+	
+	@Override
+	public void opened(Object arg0, @SuppressWarnings("rawtypes") Map arg1) {}
+
+	@Override
+	public void progress(int arg0, long arg1, byte[] arg2, @SuppressWarnings("rawtypes") Map arg3) {}
+
+	@Override
+	public void setController(BasicController arg0) {}
 }
