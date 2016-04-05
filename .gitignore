@@ -1,6 +1,13 @@
-QuServer/bin/
-QuServer/temp/uploads
-QuServer/logs/
-QuClient/bin/
-QuAD/bin/
-*.class
+### Gradle ###
+.gradle
+build/
+built-jars/
+QuAD/build
+QuServer/build
+QuClient/build
+
+# Ignore Gradle GUI config
+gradle-app.setting
+
+# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+!gradle-wrapper.jar
