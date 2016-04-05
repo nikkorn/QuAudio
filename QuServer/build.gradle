@@ -1,0 +1,42 @@
+apply plugin: 'java' 
+
+version = '1.0'
+
+task copyPropertiesFile(type: Copy) {
+    from 'src/qu.prop.xml'
+    into '../built-jars/quserver'
+}
+
+task copyRequiredJars(type: Copy) {
+    from 'libs'
+    into '../built-jars/quserver/libs'
+}
+    
+task fatJar(type: Jar) {
+    File libsDir = file('libs')
+   
+    manifest {
+        attributes 'Implementation-Title': 'QuServer JAR',  
+	    'Implementation-Version': version,
+	    'Main-Class': 'com.quaudio.quserver.server.Server',
+            'Class-Path': files { libsDir.listFiles() }.collect { relativePath(it) }.join(' ')
+    }
+
+    archiveName = 'quserver.jar'
+    destinationDir = file("../built-jars/quserver")
+    from sourceSets.main.output
+    with jar
+}
+
+fatJar.dependsOn(copyPropertiesFile)
+fatJar.dependsOn(copyRequiredJars)
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'org.json:json:20140107'
+    testCompile "junit:junit:4.11"
+}

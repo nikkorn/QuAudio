@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Implementation-Title: QuServer JAR
+Implementation-Version: 1.0
+Main-Class: com.quaudio.quserver.server.Server
+Class-Path: libs/basicplayer3.0.jar libs/commons-logging-1.2.jar libs/
+ jl1.0.1.jar libs/jl1.0.jar libs/jogg-0.0.7.jar libs/jorbis-0.0.15.jar
+  libs/json-20140107.jar libs/jspeex0.9.7.jar libs/mp3spi1.9.4.jar lib
+ s/mp3spi1.9.5.jar libs/tritonus_share.jar libs/vorbisspi1.0.2.jar
+

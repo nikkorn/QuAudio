@@ -1,0 +1,8 @@
+package com.quaudio.quclient.server;
+
+public enum IncomingActionType {
+	PUSH_VOLUME,
+	PUSH_PLAYLIST,
+	PUSH_SETTINGS,
+	PLAY_FAIL
+}

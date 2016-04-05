@@ -1,0 +1,27 @@
+apply plugin: 'java' 
+
+version = '1.0'
+
+task fatJar(type: Jar) {
+	manifest {
+        attributes 'Implementation-Title': 'QuServer Auto Updater',  
+                'Main-Class': 'com.quaudio.quad.QuAD',
+        	'Implementation-Version': version
+    }
+    archiveName = 'quad.jar'
+    destinationDir = file("../built-jars/quad")
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+    compile 'commons-io:commons-io:2.4'
+    compile 'net.lingala.zip4j:zip4j:1.3.2'
+    testCompile "junit:junit:4.11"
+}
+
+
