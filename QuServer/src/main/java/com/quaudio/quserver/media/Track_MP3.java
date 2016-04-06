@@ -1,7 +1,6 @@
 package com.quaudio.quserver.media;
 
 import java.io.File;
-import java.io.InputStream;
 import java.util.Map;
 import com.quaudio.quserver.filetransfer.AudioFile;
 import com.quaudio.quserver.server.Log;

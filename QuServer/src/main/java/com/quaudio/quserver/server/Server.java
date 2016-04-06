@@ -138,7 +138,7 @@ public class Server {
 		welcomePackage.add(playlist.generatePushPlayListOutgoingAction());
 		// Add PUSH_VOLUME to welcome package
 		JSONObject volumeSetJSON = new JSONObject();
-		volumeSetJSON.put("volume_level", Utils.getMasterVolume());
+		volumeSetJSON.put("volume_level", Utils.getUtils().getMasterVolume());
 		welcomePackage.add(new OutgoingAction(OutgoingActionType.PUSH_VOLUME, volumeSetJSON));
 		clientManager.sendWelcomePackages(welcomePackage);
 	}
@@ -171,7 +171,7 @@ public class Server {
 				if(properties.isSuperUser(action.getActionInfoObject().getString("client_id"))) {
 					// Set the system volume.
 					int newVolumeLevel = action.getActionInfoObject().getInt("volume_level");
-					Utils.setMasterVolume(newVolumeLevel);
+					Utils.getUtils().setMasterVolume(newVolumeLevel);
 					// Notify all connected users about the change in volume.
 					JSONObject volumeSetJSON = new JSONObject();
 					volumeSetJSON.put("volume_level", newVolumeLevel);
@@ -222,7 +222,7 @@ public class Server {
 			case EXIT:
 				Log.log(Log.MessageType.INFO, "SERVER", "system shutdown requested");
 				// Attempt to shutdown the device.
-				Utils.shutdownDevice(Server.properties.isOSUnixLike());
+				Utils.getUtils().shutdownDevice(Server.properties.isOSUnixLike());
 				break;
 				
 			// We have an unknown type, just ignore this IncomingAction
