@@ -10,5 +10,6 @@ public enum IncomingActionType {
 	UPDATE_VOLUME,
 	UPDATE_SETTINGS,
 	ADMIN_REQUEST,
-	EXIT
+	EXIT, 
+	UNKNOWN
 }

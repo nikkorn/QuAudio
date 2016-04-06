@@ -20,6 +20,11 @@ public class IncomingAction extends Action {
 	 * @return IncomingActionType
 	 */
 	public IncomingActionType getIncomingActionType() {
-		return IncomingActionType.valueOf(this.getActionInfoObject().getString("action_type"));
+		try {
+			return IncomingActionType.valueOf(this.getActionInfoObject().getString("action_type"));
+		} catch (IllegalArgumentException e) {
+			// We have no knowledge of this action type, return 'UNKNOWN'
+			return IncomingActionType.UNKNOWN;
+		}
 	}
 }
