@@ -1,3 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 java -jar ./quad.jar
-java -jar ./source/quserver.jar
+cd source
+java -jar ./quserver.jar
