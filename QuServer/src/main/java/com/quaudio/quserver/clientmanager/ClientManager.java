@@ -160,13 +160,20 @@ public class ClientManager implements Runnable {
 		}
 		
 		// Next we need to check that the requester has supplied the correct access password (if we require one)
-		String accessPassword = Server.properties.getAccessPassword();
-		if(accessPassword != "" && !requestJSON.getString("access_password").equals(accessPassword)) {
-			// An access password is required, but the client has supplied an incorrect one, notify the user and decline
-			responseWriter.println("WRONG_ACCESS_PASSWORD");
-			responseWriter.flush();
-			Log.log(Log.MessageType.WARNING, "CLIENT_MANAGER", "client supplied incorrect access password");
-			return;
+		// Check that the server properties file has been initialised.
+		if(Server.properties != null) {
+			String accessPassword = Server.properties.getAccessPassword();
+			if(accessPassword != "" && !requestJSON.getString("access_password").equals(accessPassword)) {
+				// An access password is required, but the client has supplied an incorrect one, notify the user and decline
+				responseWriter.println("WRONG_ACCESS_PASSWORD");
+				responseWriter.flush();
+				Log.log(Log.MessageType.WARNING, "CLIENT_MANAGER", "client supplied incorrect access password");
+				return;
+			}
+		} else {
+			// Properties have not been properly initialised, this may be due to this method being
+			// run in the context of a unit/integration test.
+			Log.log(Log.MessageType.WARNING, "CLIENT_MANAGER", "Server properties not initalised, cannot get access password");
 		}
 		
 		// It seems that we can't find a reason to decline this request, accept and notify the client
