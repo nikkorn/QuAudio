@@ -12,6 +12,15 @@ task copyRequiredJars(type: Copy) {
     into '../built-jars/quserver/libs'
 }
     
+task testCopyPropertiesFile(type: Copy) {
+    from 'src/qu.prop.xml'
+    into './'
+}
+
+task testDeletePropertiesFile(type: Delete) {
+    delete 'qu.prop.xml'
+}
+
 task fatJar(type: Jar) {
     File libsDir = file('libs')
    
@@ -40,3 +49,18 @@ dependencies {
     compile 'org.json:json:20140107'
     testCompile "junit:junit:4.11"
 }
+
+test {
+	dependsOn {
+		testCopyPropertiesFile
+	}
+	
+	finalizedBy {
+		testDeletePropertiesFile
+	}
+	
+    testLogging {
+        showStandardStreams = true
+    }
+}
+   
