@@ -54,7 +54,7 @@ public class Utils {
 				try {
 					Runtime.getRuntime().exec("amixer set PCM -- " + level + "%");
 				} catch(IOException e) {}
-				Log.log(Log.MessageType.ERROR, "UTILS", "set system master volume to '" + level + "'");
+				Log.log(Log.MessageType.INFO, "UTILS", "set system master volume to '" + level + "'");
 			} else {
 				// At the moment we have no support for changing volume for a non-Unix like OS.
 				Log.log(Log.MessageType.ERROR, "UTILS", "setting master volume is currently only supported on Unix like OS");

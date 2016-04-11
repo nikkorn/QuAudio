@@ -20,10 +20,10 @@ import com.quaudio.quserver.server.Server;
  */
 public class Beacon {
 	// Used to accept connections from clients that have found this server on the network and return various details.
-	ServerSocket clientReceiverSocket = null;
+	private ServerSocket clientReceiverSocket = null;
 	// Listens for UDP packets (probes) sent from clients, used to return a confirmation of 
 	// of this servers presence on the local network.
-	DatagramSocket probeListenerSocket = null;
+	private DatagramSocket probeListenerSocket = null;
 	
 	public Beacon(int beaconPort, int receiverPort) {
 		try {
@@ -65,6 +65,21 @@ public class Beacon {
 	}
 	
 	/**
+	 * Stop the beacon by closing the clientReceiverSocket and probeListenerSocket.
+	 */
+	public void stop() {
+		// Close the clientReceiverSocket and probeListenerSocket.
+		if(clientReceiverSocket != null) {
+			try {
+				clientReceiverSocket.close();
+			} catch (IOException e) {}
+		}
+		if(probeListenerSocket != null) {
+			probeListenerSocket.close();
+		}
+	}
+	
+	/**
 	 * Listens for UDP packets (probes) in its own thread and on finding one returns a confirmation packet.
 	 * This allows clients to locate servers on the network.
 	 */
@@ -86,7 +101,13 @@ public class Beacon {
 					DatagramPacket probeResponse = new DatagramPacket(sendData, sendData.length, potentialProbe.getAddress(), potentialProbe.getPort());
 					probeListenerSocket.send(probeResponse);
 				}
-			} catch (IOException e) {}
+			} catch (IOException e) {
+				// If this IOException is thrown by the probeListenerSocket being closed 
+				// then simply stop the running probe listener thread.
+				if(probeListenerSocket == null || probeListenerSocket.isClosed()) {
+					break;
+				}
+			}
 		}
 	}
 	
@@ -102,7 +123,12 @@ public class Beacon {
 			try {
 				senderSocket = clientReceiverSocket.accept();
 			} catch (IOException e) {
-				// If we get an IOException here then just log it as an unsuccessful connection.
+				// If this IOException is thrown by the clientReceiverSocket being closed 
+				// then simply stop the running client receiver thread.
+				if(clientReceiverSocket == null || clientReceiverSocket.isClosed()) {
+					break;
+				}
+				// Our clientReceiverSocket is fine, just log this as an unsuccessful connection.
 				gotSocket = false;
 				Log.log(Log.MessageType.WARNING, "NETPROBE_BEACON", "failed to get connecting client socket");
 			}

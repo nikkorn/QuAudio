@@ -47,18 +47,17 @@ public class Log {
 					logFile.createNewFile();
 				} catch (IOException e) {
 					// Could not create log file.
-					e.printStackTrace();
 					writeToFile = false;
 					System.out.println("Failed to create session log file!");
-					System.out.println("Logging to file is disabled!");
 				}
 				try {
 					logFileWriter = new PrintWriter(new FileWriter(logFile, true));
 				} catch (IOException e) {
 					// Could not create log file writer.
-					e.printStackTrace();
 					writeToFile = false;
 					System.out.println("Failed to create session log file writer!");
+				}
+				if(!writeToFile) {
 					System.out.println("Logging to file is disabled!");
 				}
 			}
